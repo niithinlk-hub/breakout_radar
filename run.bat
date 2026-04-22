@@ -1,0 +1,6 @@
+@echo off
+cd /d "%~dp0"
+echo Installing dependencies...
+pip install -r requirements.txt -q
+echo Starting Breakout Radar...
+streamlit run app.py --server.port 8502 --theme.base dark
