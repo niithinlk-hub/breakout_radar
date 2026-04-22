@@ -53,8 +53,9 @@ MACD_CROSS_LOOKBACK  = 3               # how fresh the MACD cross must be
 STOCH_CROSS_LOOKBACK = 3
 DISTRIBUTION_DROP_PCT = -4.0
 DISTRIBUTION_LOOKBACK = 5
-MIN_SCORE_FOR_BUY    = 65.0
-GRADE_CUTOFFS        = [(85, "A+"), (75, "A"), (65, "B+"), (0, "B")]
+MIN_SCORE_FOR_BUY    = 70.0
+# Max score = 100 + 5 weekly bonus = 105
+GRADE_CUTOFFS        = [(95, "A+"), (85, "A"), (75, "B+"), (0, "B")]
 
 # Forward-return backtest window (trading days)
 BACKTEST_HOLD_DAYS   = 5
@@ -100,6 +101,32 @@ def _atr(high: pd.Series, low: pd.Series, close: pd.Series, w: int = 14) -> pd.S
     tr3 = (low - close.shift()).abs()
     tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
     return tr.ewm(alpha=1 / w, min_periods=w, adjust=False).mean()
+
+
+def _attach_weekly(df: pd.DataFrame) -> pd.DataFrame:
+    """Add `_weekly_bullish` column: True when last-completed weekly bar has
+    close > 20W SMA AND weekly MACD line > signal. Uses daily date index,
+    broadcasts weekly verdict forward to each daily bar (no look-ahead).
+    """
+    if "_weekly_bullish" in df.columns:
+        return df
+    try:
+        wk = df[["Open", "High", "Low", "Close", "Volume"]].resample("W-FRI").agg({
+            "Open": "first", "High": "max", "Low": "min",
+            "Close": "last", "Volume": "sum",
+        }).dropna()
+        if len(wk) < 22:
+            df["_weekly_bullish"] = False
+            return df
+        wk_close = wk["Close"].astype(float)
+        wk_sma20 = wk_close.rolling(20).mean()
+        wk_line, wk_sig, _ = _macd(wk_close)
+        wk_rsi = _rsi(wk_close, 14)
+        wk_bull = ((wk_close > wk_sma20) & (wk_line > wk_sig) & (wk_rsi > 50)).shift(1).fillna(False)
+        df["_weekly_bullish"] = wk_bull.reindex(df.index, method="ffill").fillna(False).astype(bool)
+    except Exception:
+        df["_weekly_bullish"] = False
+    return df
 
 
 # ── Bar-at-index evaluation (used by both scanner and backtester) ─────────────
@@ -220,78 +247,120 @@ def _signal_at(df: pd.DataFrame, i: int) -> Optional[Dict]:
 
     atr_now = float(atr14.iloc[i]) if not pd.isna(atr14.iloc[i]) else c * 0.02
 
-    # ── Soft score (0-100) ────────────────────────────────────────────────────
+    # ── Additional indicators for new scoring matrix ─────────────────────────
+    sma20_full  = close.rolling(20).mean()
+    sma50_full  = close.rolling(50).mean()
+    sma200_full = close.rolling(200).mean()
+    s20  = float(sma20_full.iloc[i])
+    s50  = float(sma50_full.iloc[i])
+    s200 = float(sma200_full.iloc[i])
+    s20_prev  = float(sma20_full.iloc[i - 5])
+    s50_prev  = float(sma50_full.iloc[i - 10])
+    s200_prev = float(sma200_full.iloc[i - 20])
+
+    # Bollinger Band (20, 2) width as % of close
+    bb_mid   = sma20_full
+    bb_std   = close.rolling(20).std()
+    bb_upper = bb_mid + 2.0 * bb_std
+    bb_lower = bb_mid - 2.0 * bb_std
+    bb_width_pct = ((bb_upper - bb_lower) / close) * 100.0
+    bb_now = float(bb_width_pct.iloc[i])
+    bb_window = bb_width_pct.iloc[max(0, i - 59):i + 1].dropna()
+    if len(bb_window) >= 20:
+        bb_pct_rank = (bb_window < bb_now).mean()  # 0 = tightest, 1 = widest
+    else:
+        bb_pct_rank = 0.5
+
+    # 52W high proximity
+    wk52_high = float(high.rolling(252, min_periods=60).max().iloc[i])
+    pct_below_52w = (wk52_high - c) / wk52_high * 100.0 if wk52_high > 0 else 100.0
+
+    # Weekly confirmation (precomputed series stored on df)
+    weekly_bullish = bool(df["_weekly_bullish"].iloc[i]) if "_weekly_bullish" in df.columns else False
+
+    # ── NEW SCORING MATRIX (100 + 5 bonus) ───────────────────────────────────
     score = 0.0
     reasons: List[str] = []
 
-    # MACD (25)
-    if macd_fresh_cross:
-        score += 25.0
-        reasons.append("MACD× fresh")
-    else:
-        score += 18.0
-        reasons.append("MACD hist↑")
+    # Trend — 30  (price vs 20/50/200 SMA, alignment + slope)
+    trend_pts = 0.0
+    if c > s20:        trend_pts += 7.5
+    if s20 > s50:      trend_pts += 7.5
+    if s50 > s200:     trend_pts += 7.5
+    slopes_ok = (s20 > s20_prev) and (s50 > s50_prev) and (s200 > s200_prev)
+    if slopes_ok:      trend_pts += 7.5
+    score += trend_pts
+    reasons.append(f"Trend {trend_pts:.0f}/30")
 
-    # RSI (20)
+    # Momentum — 25  (RSI zone 15 + MACD direction 10)
+    rsi_pts = 0.0
     rsi_delta = rsi_now - rsi_prev
-    if 50 <= rsi_now <= 62 and rsi_delta >= 3:
-        score += 20.0
-    elif rsi_now >= 50 and rsi_delta >= 2:
-        score += 16.0
+    if 50 <= rsi_now <= 65 and rsi_delta >= 2:
+        rsi_pts = 15.0
+    elif 45 <= rsi_now <= 70 and rsi_delta > 0:
+        rsi_pts = 11.0
     elif rsi_delta > 0:
-        score += 10.0
+        rsi_pts = 6.0
     else:
-        score += 5.0
-    reasons.append(f"RSI {rsi_now:.0f}↑")
+        rsi_pts = 2.0
+    macd_pts = 0.0
+    if macd_fresh_cross:
+        macd_pts = 10.0
+    elif line_i > sig_i and hist_i > hist_prev and hist_i > 0:
+        macd_pts = 8.0
+    elif line_i > sig_i:
+        macd_pts = 5.0
+    else:
+        macd_pts = 2.0
+    score += rsi_pts + macd_pts
+    reasons.append(f"RSI{rsi_now:.0f}/MACD{'×' if macd_fresh_cross else '+'}")
 
-    # Stoch RSI (20)
-    if k_i < 35:
-        score += 20.0
-        reasons.append(f"StochK {k_i:.0f} (oversold↑)")
-    elif k_i < 55:
-        score += 15.0
+    # Volume — 20  (today vs 20d avg)
+    if vol_ratio >= 2.5:
+        vol_pts = 20.0
+    elif vol_ratio >= VOL_CONFIRM_STRONG:
+        vol_pts = 17.0
+    elif vol_ratio >= 1.5:
+        vol_pts = 13.0
+    elif vol_ratio >= 1.2:
+        vol_pts = 9.0
+    else:
+        vol_pts = 5.0
+    score += vol_pts
+    reasons.append(f"Vol×{vol_ratio:.1f}")
+
+    # Setup — 25  (52W proximity 13 + BB squeeze 12)
+    if pct_below_52w <= 2:
+        prox_pts = 13.0
+    elif pct_below_52w <= 8:
+        prox_pts = 10.0
+    elif pct_below_52w <= 15:
+        prox_pts = 6.0
+    else:
+        prox_pts = 3.0
+    if bb_pct_rank <= 0.2:
+        squeeze_pts = 12.0
+    elif bb_pct_rank <= 0.4:
+        squeeze_pts = 8.0
+    elif bb_pct_rank <= 0.6:
+        squeeze_pts = 5.0
+    else:
+        squeeze_pts = 2.0
+    score += prox_pts + squeeze_pts
+    reasons.append(f"52W −{pct_below_52w:.1f}% BBrk{bb_pct_rank*100:.0f}%")
+
+    # Weekly bonus — +5  (weekly trend confirmation)
+    weekly_pts = 5.0 if weekly_bullish else 0.0
+    score += weekly_pts
+    if weekly_bullish:
+        reasons.append("Wk↑")
+
+    if k_i < 40:
         reasons.append(f"StochK {k_i:.0f}")
-    else:
-        score += 8.0
-        reasons.append(f"StochK {k_i:.0f}")
 
-    # Pullback quality (15) — prefer clean bounce close to EMA20 with lower wick
-    bar_range = float(high.iloc[i]) - float(low.iloc[i])
-    body = abs(c - float(df["Open"].iloc[i]))
-    lower_wick = min(c, float(df["Open"].iloc[i])) - float(low.iloc[i])
-    if bar_range > 0 and lower_wick / bar_range > 0.3 and c > float(df["Open"].iloc[i]):
-        score += 15.0
-        reasons.append("hammer")
-    else:
-        dist_e20 = abs(c - e20_i) / e20_i * 100.0
-        if dist_e20 <= 1.5:
-            score += 12.0
-        elif dist_e20 <= 3.0:
-            score += 8.0
-        else:
-            score += 4.0
-
-    # Volume (10)
-    if vol_ratio >= VOL_CONFIRM_STRONG:
-        score += 10.0
-        reasons.append(f"vol×{vol_ratio:.1f}")
-    elif vol_ratio >= 1.4:
-        score += 7.0
-        reasons.append(f"vol×{vol_ratio:.1f}")
-    else:
-        score += 4.0
-        reasons.append(f"vol×{vol_ratio:.1f}")
-
-    # Trend strength (10)
+    score = round(min(105.0, score), 1)
+    # Expose dist_200ema for downstream display
     dist_200 = (c - e200_i) / e200_i * 100.0
-    if 5 <= dist_200 <= 25:
-        score += 10.0
-    elif 0 < dist_200 < 5 or 25 < dist_200 <= 40:
-        score += 7.0
-    else:
-        score += 4.0
-
-    score = round(min(100.0, score), 1)
 
     # ── Levels for 1-week swing ──────────────────────────────────────────────
     entry = c
@@ -331,6 +400,7 @@ def _signal_at(df: pd.DataFrame, i: int) -> Optional[Dict]:
 def _evaluate(ticker: str, df: pd.DataFrame) -> Optional[Dict]:
     if df is None or len(df) < 260:
         return None
+    df = _attach_weekly(df)
     sig = _signal_at(df, len(df) - 1)
     if sig is None or sig["score"] < MIN_SCORE_FOR_BUY:
         return None
@@ -422,6 +492,7 @@ def backtest_signals(
     for ticker, df in stocks_data.items():
         if df is None or len(df) < 260 + hold_days + 5:
             continue
+        df = _attach_weekly(df)
         close = df["Close"].astype(float)
         low   = df["Low"].astype(float)
         high  = df["High"].astype(float)
