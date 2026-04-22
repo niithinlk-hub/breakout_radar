@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import warnings
 from typing import Dict, Optional, Tuple
 
@@ -10,6 +11,7 @@ import pandas as pd
 import ta
 
 warnings.filterwarnings("ignore")
+logger = logging.getLogger(__name__)
 
 
 class BreakoutEngine:
@@ -456,6 +458,7 @@ def compute_metrics_for_universe(
         return "Small Cap"
 
     rows = []
+    first_error: str = ""
     for ticker, df in stocks_data.items():
         if df is None or len(df) < 20:
             continue
@@ -475,17 +478,23 @@ def compute_metrics_for_universe(
                 "ticker":       ticker,
                 "name":         get_company_name(ticker),
                 "sector":       get_sector(ticker),
-                "cmp":          round(close, 2),
-                "change_pct":   round(change_pct, 2),
+                "cmp":          round(float(close), 2),
+                "change_pct":   round(float(change_pct), 2),
                 "bps":          bps,
-                "vol_surge":    round(vol_ratio, 2),
-                "rsi":          round(rsi, 1) if not pd.isna(rsi) else None,
+                "vol_surge":    round(float(vol_ratio), 2),
+                "rsi":          round(float(rsi), 1) if not pd.isna(rsi) else None,
                 "mc_category":  _infer_mc_category(ticker),
                 **{f"score_{k}": round(v, 2) for k, v in factor_scores.items()},
                 **levels,
             })
-        except Exception:
+        except Exception as exc:
+            if not first_error:
+                first_error = f"{ticker}: {type(exc).__name__}: {exc}"
+            logger.warning("Engine failed for %s: %s", ticker, exc)
             continue
+
+    if first_error and not rows:
+        logger.error("compute_metrics returned 0 rows. First error: %s", first_error)
 
     df_out = pd.DataFrame(rows)
     if not df_out.empty:
