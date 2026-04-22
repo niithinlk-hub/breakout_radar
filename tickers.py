@@ -453,9 +453,15 @@ def get_universe(category: str = "full") -> List[str]:
     return list(dict.fromkeys(raw))  # deduplicate preserving order
 
 
+FULL_UNIVERSE_CAP = 350  # limit full universe to avoid rate-limit hammering
+
+
 def get_tickers_ns(category: str = "full") -> List[str]:
     """Return tickers with .NS suffix for yfinance."""
-    return [f"{t}.NS" for t in get_universe(category)]
+    tickers = get_universe(category)
+    if category == "full":
+        tickers = tickers[:FULL_UNIVERSE_CAP]
+    return [f"{t}.NS" for t in tickers]
 
 
 def get_company_name(ticker: str) -> str:
