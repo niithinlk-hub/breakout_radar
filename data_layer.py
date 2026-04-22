@@ -4,20 +4,46 @@ from __future__ import annotations
 
 import logging
 import time
+from contextlib import contextmanager
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 import streamlit as st
 import yfinance as yf
+import yfinance.shared as yf_shared
 
 logger = logging.getLogger(__name__)
 
-BATCH_SIZE = 20
+BATCH_SIZE = 15
 MAX_RETRIES = 2
-BACKOFF_BASE = 1.5
+BACKOFF_BASE = 2.0
 MAX_RETRY_TICKERS = 40   # cap to prevent multi-minute hangs
-INTER_BATCH_SLEEP = 0.5
+INTER_BATCH_SLEEP = 1.5
+RATE_LIMIT_COOLDOWN = 45  # seconds to sleep when Yahoo rate-limits us
+
+
+@contextmanager
+def _suppress_yfinance_logs():
+    """Mute yfinance's internal logger to keep Streamlit logs clean."""
+    yf_log = logging.getLogger("yfinance")
+    prev_level = yf_log.level
+    prev_propagate = yf_log.propagate
+    yf_log.setLevel(logging.CRITICAL)
+    yf_log.propagate = False
+    try:
+        yield
+    finally:
+        yf_log.setLevel(prev_level)
+        yf_log.propagate = prev_propagate
+
+
+def _is_rate_limited(errors: dict) -> bool:
+    """Return True if any yf_shared error indicates Yahoo rate-limiting."""
+    for msg in errors.values():
+        if "too many requests" in str(msg).lower() or "ratelimit" in str(msg).lower():
+            return True
+    return False
 
 
 def _extract_ticker_data(raw: pd.DataFrame, ticker: str) -> Optional[pd.DataFrame]:
@@ -26,7 +52,7 @@ def _extract_ticker_data(raw: pd.DataFrame, ticker: str) -> Optional[pd.DataFram
     Handles:
     - Flat DataFrame (single-ticker downloads in most yfinance versions)
     - Old MultiIndex: (ticker, field) — ticker at level 0
-    - New MultiIndex (yfinance ≥ 0.2.38): (field, ticker) — field at level 0
+    - New MultiIndex (yfinance >= 0.2.38): (field, ticker) — field at level 0
     """
     if raw is None or raw.empty:
         return None
@@ -48,7 +74,6 @@ def _extract_ticker_data(raw: pd.DataFrame, ticker: str) -> Optional[pd.DataFram
         df.dropna(how="all", inplace=True)
         if df.empty or len(df) < 20:
             return None
-        # Ensure standard OHLCV columns exist
         required = {"Open", "High", "Low", "Close", "Volume"}
         if not required.issubset(set(df.columns)):
             return None
@@ -61,8 +86,8 @@ def _download_batch(
     tickers: List[str],
     period: str = "1y",
     interval: str = "1d",
-) -> Dict[str, pd.DataFrame]:
-    """Download one batch; returns {ticker: ohlcv_df}."""
+) -> Tuple[Dict[str, pd.DataFrame], bool]:
+    """Download one batch; returns ({ticker: ohlcv_df}, rate_limited_flag)."""
     result: Dict[str, pd.DataFrame] = {}
     try:
         kwargs: dict = dict(
@@ -73,19 +98,25 @@ def _download_batch(
         )
         if len(tickers) > 1:
             kwargs["group_by"] = "ticker"
-        raw = yf.download(tickers, **kwargs)
+        with _suppress_yfinance_logs():
+            raw = yf.download(tickers, **kwargs)
     except Exception as exc:
         logger.warning("Batch download error: %s", exc)
-        return result
+        return result, False
 
     if raw is None or (hasattr(raw, "empty") and raw.empty):
-        return result
+        return result, False
+
+    # Check yfinance's shared error dict for rate limiting
+    yf_errors = dict(getattr(yf_shared, "_ERRORS", {}))
+    was_rate_limited = _is_rate_limited(yf_errors)
 
     for t in tickers:
         df = _extract_ticker_data(raw, t)
         if df is not None:
             result[t] = df
-    return result
+
+    return result, was_rate_limited
 
 
 def _retry_singles(
@@ -105,8 +136,9 @@ def _retry_singles(
         fetched = False
         for attempt in range(MAX_RETRIES):
             try:
-                raw = yf.download(t, period=period, interval=interval,
-                                  auto_adjust=True, progress=False)
+                with _suppress_yfinance_logs():
+                    raw = yf.download(t, period=period, interval=interval,
+                                      auto_adjust=True, progress=False)
                 df = _extract_ticker_data(raw, t)
                 if df is not None:
                     success[t] = df
@@ -117,7 +149,7 @@ def _retry_singles(
             time.sleep(BACKOFF_BASE ** attempt)
         if not fetched:
             still_failed.append(t)
-        time.sleep(0.2)
+        time.sleep(0.3)
 
     return success, still_failed
 
@@ -140,6 +172,7 @@ def fetch_universe(
 
     all_data: Dict[str, pd.DataFrame] = {}
     batch_failed: List[str] = []
+    consecutive_rate_limits = 0
 
     progress_bar = st.progress(0.0, text="Initialising download…")
     status_text = st.empty()
@@ -155,12 +188,25 @@ def fetch_universe(
                 f"Downloading: {', '.join(b.replace('.NS', '') for b in batch[:5])}…"
             )
 
-            batch_result = _download_batch(batch, period, interval)
+            batch_result, was_rate_limited = _download_batch(batch, period, interval)
             all_data.update(batch_result)
             missed = [t for t in batch if t not in batch_result]
             batch_failed.extend(missed)
 
-            time.sleep(INTER_BATCH_SLEEP)
+            if was_rate_limited:
+                consecutive_rate_limits += 1
+                if consecutive_rate_limits >= 2:
+                    # Yahoo is actively throttling — back off hard
+                    status_text.caption(
+                        f"Yahoo rate limiting detected. Cooling down {RATE_LIMIT_COOLDOWN}s…"
+                    )
+                    time.sleep(RATE_LIMIT_COOLDOWN)
+                    consecutive_rate_limits = 0
+                else:
+                    time.sleep(INTER_BATCH_SLEEP * 3)
+            else:
+                consecutive_rate_limits = 0
+                time.sleep(INTER_BATCH_SLEEP)
 
         if batch_failed:
             status_text.caption(
@@ -196,8 +242,9 @@ def fetch_hourly(
 def get_nifty50_data() -> Optional[pd.DataFrame]:
     """Fetch ^NSEI (Nifty 50 index) for market regime detection."""
     try:
-        raw = yf.download("^NSEI", period="1y", interval="1d",
-                          auto_adjust=True, progress=False)
+        with _suppress_yfinance_logs():
+            raw = yf.download("^NSEI", period="1y", interval="1d",
+                              auto_adjust=True, progress=False)
         return _extract_ticker_data(raw, "^NSEI")
     except Exception:
         return None
