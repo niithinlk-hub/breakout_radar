@@ -303,9 +303,26 @@ def tab_breakout_radar(filtered_df: pd.DataFrame, full_df: pd.DataFrame, setting
     def chg_color(val: float) -> str:
         return "color: #00FF88" if val >= 0 else "color: #FF4444"
 
+    def bps_bg(series):
+        def _cell(val):
+            try:
+                v = float(val) / 100.0
+                v = max(0.0, min(1.0, v))
+                if v <= 0.5:
+                    t = v / 0.5
+                    r, g, b = int(200 + 55 * t), int(80 + 120 * t), 40
+                else:
+                    t = (v - 0.5) / 0.5
+                    r, g, b = int(255 - 155 * t), int(200 + 55 * t), 40
+                return f"background-color: rgba({r},{g},{b},0.35)"
+            except (TypeError, ValueError):
+                return ""
+        return [_cell(v) for v in series]
+
     styled = display_df.style \
         .map(bps_color, subset=["BPS"]) \
         .map(chg_color, subset=["Chg %"]) \
+        .apply(bps_bg, subset=["BPS"]) \
         .format({
             "CMP (₹)": "₹{:.2f}",
             "Chg %": "{:+.2f}%",
@@ -314,8 +331,7 @@ def tab_breakout_radar(filtered_df: pd.DataFrame, full_df: pd.DataFrame, setting
             "RSI": "{:.0f}",
             "T1 (₹)": "₹{:.2f}",
             "R:R": "{:.2f}",
-        }, na_rep="—") \
-        .background_gradient(subset=["BPS"], cmap="RdYlGn", vmin=0, vmax=100)
+        }, na_rep="—")
 
     st.dataframe(
         styled,
