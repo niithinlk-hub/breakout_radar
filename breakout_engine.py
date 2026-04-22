@@ -317,7 +317,7 @@ class BreakoutEngine:
 
     def score_relative_strength(self, bench_df: Optional[pd.DataFrame] = None) -> float:
         df = self.df
-        bench = bench_df or self.bench
+        bench = bench_df if bench_df is not None else self.bench
         if bench is None or len(df) < 20:
             return 5.0
 
