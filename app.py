@@ -72,7 +72,7 @@ def render_sidebar() -> Dict:
 
         st.markdown('<div class="section-header">Universe</div>', unsafe_allow_html=True)
         universe_options = {
-            "Full 500+ (All)":      "full",
+            "Full 475":             "full",
             "Nifty 50":             "nifty50",
             "Nifty Next 50":        "next50",
             "Nifty Midcap 150":     "midcap150",

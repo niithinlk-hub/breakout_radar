@@ -2,6 +2,30 @@
 
 from typing import Dict, List, Tuple
 
+SYMBOL_RENAMES: Dict[str, str] = {
+    "AEGISCHEM": "AEGISLOG",
+    "APCOTEX": "APCOTEXIND",
+    "CENTURYTEX": "ABREL",
+    "TECHNOELE": "TECHNOE",
+}
+
+EXCLUDED_TICKERS = {
+    "PUROHIT",
+    "ROLTAS",
+    "SYSTEMIX",
+    "TATAMETALI",
+    "TJSB",
+    "THIRUMALAI",
+    "TRIPATHYI",
+    "TUFROPES",
+    "VVFLTD",
+    "WEBEL",
+    "WIPIND",
+    "ZODJRDMKJ",
+}
+
+FULL_UNIVERSE_LIMIT = 475
+
 # ── Nifty 50 ─────────────────────────────────────────────────────────────────
 NIFTY_50: List[str] = [
     "ADANIENT", "ADANIPORTS", "APOLLOHOSP", "ASIANPAINT", "AXISBANK",
@@ -437,7 +461,19 @@ COMPANY_INFO: Dict[str, Tuple[str, str]] = {
     # Default for unmapped
 }
 
+COMPANY_INFO.update(
+    {
+        "AEGISLOG": ("Aegis Logistics", "Oil & Gas"),
+        "APCOTEXIND": ("Apcotex Industries", "Chemicals"),
+        "ABREL": ("Aditya Birla Real Estate", "Real Estate"),
+    }
+)
+
 SECTOR_LIST = sorted(set(v[1] for v in COMPANY_INFO.values()))
+
+
+def _normalize_symbol(symbol: str) -> str:
+    return SYMBOL_RENAMES.get(symbol, symbol)
 
 
 def get_universe(category: str = "full") -> List[str]:
@@ -450,7 +486,17 @@ def get_universe(category: str = "full") -> List[str]:
         "full": NIFTY_50 + NIFTY_NEXT_50 + NIFTY_MIDCAP_150 + NIFTY_SMALLCAP_250 + ADDITIONAL_LIQUID,
     }
     raw = universe_map.get(category, NIFTY_50 + NIFTY_NEXT_50 + NIFTY_MIDCAP_150 + NIFTY_SMALLCAP_250 + ADDITIONAL_LIQUID)
-    return list(dict.fromkeys(raw))  # deduplicate preserving order
+    cleaned: List[str] = []
+    seen = set()
+    for symbol in raw:
+        normalized = _normalize_symbol(symbol)
+        if normalized in EXCLUDED_TICKERS or normalized in seen:
+            continue
+        seen.add(normalized)
+        cleaned.append(normalized)
+    if category == "full":
+        return cleaned[:FULL_UNIVERSE_LIMIT]
+    return cleaned
 
 
 def get_tickers_ns(category: str = "full") -> List[str]:
@@ -459,12 +505,12 @@ def get_tickers_ns(category: str = "full") -> List[str]:
 
 
 def get_company_name(ticker: str) -> str:
-    base = ticker.replace(".NS", "")
+    base = _normalize_symbol(ticker.replace(".NS", ""))
     return COMPANY_INFO.get(base, (base, "Unknown"))[0]
 
 
 def get_sector(ticker: str) -> str:
-    base = ticker.replace(".NS", "")
+    base = _normalize_symbol(ticker.replace(".NS", ""))
     return COMPANY_INFO.get(base, ("Unknown", "Unknown"))[1]
 
 
