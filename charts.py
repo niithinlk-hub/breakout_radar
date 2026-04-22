@@ -158,9 +158,9 @@ def build_candlestick(
 
 def build_bps_gauge(score: float) -> go.Figure:
     """Semicircular gauge for BPS score."""
-    if score >= 70:
+    if score >= 75:
         bar_color = COLORS["green"]
-    elif score >= 50:
+    elif score >= 55:
         bar_color = COLORS["amber"]
     else:
         bar_color = COLORS["red"]
@@ -170,18 +170,18 @@ def build_bps_gauge(score: float) -> go.Figure:
         value=score,
         number=dict(font=dict(size=36, color=bar_color), suffix=""),
         gauge=dict(
-            axis=dict(range=[0, 100], tickwidth=1, tickcolor=COLORS["muted"],
+            axis=dict(range=[0, 105], tickwidth=1, tickcolor=COLORS["muted"],
                       tickfont=dict(color=COLORS["muted"])),
             bar=dict(color=bar_color, thickness=0.25),
             bgcolor=COLORS["bg_card"],
             borderwidth=1,
             bordercolor=COLORS["border"],
             steps=[
-                dict(range=[0, 50], color="#1a0a0a"),
-                dict(range=[50, 70], color="#1a1500"),
-                dict(range=[70, 100], color="#001a0d"),
+                dict(range=[0, 55], color="#1a0a0a"),
+                dict(range=[55, 75], color="#1a1500"),
+                dict(range=[75, 105], color="#001a0d"),
             ],
-            threshold=dict(line=dict(color="white", width=2), thickness=0.75, value=70),
+            threshold=dict(line=dict(color="white", width=2), thickness=0.75, value=75),
         ),
         title=dict(text="Breakout Probability Score", font=dict(size=13, color=COLORS["muted"])),
         domain=dict(x=[0, 1], y=[0, 1]),
@@ -197,17 +197,14 @@ def build_bps_gauge(score: float) -> go.Figure:
 def build_score_breakdown(factor_scores: Dict[str, float]) -> go.Figure:
     """Horizontal bar chart showing each factor's 0-10 score."""
     labels = {
-        "volume":        "Volume Analysis",
-        "consolidation": "Price Consolidation",
-        "ma_alignment":  "MA Alignment",
-        "resistance":    "Resistance Proximity",
-        "momentum":      "RSI & Momentum",
-        "rel_strength":  "Relative Strength",
-        "fundamentals":  "Fundamental Catalyst",
+        "trend":    "Trend (Price vs 20/50/200 SMA)",
+        "momentum": "Momentum (RSI + MACD)",
+        "volume":   "Volume (vs 20d Avg)",
+        "setup":    "Setup (52W Proximity + BB Squeeze)",
+        "weekly":   "Weekly Trend Confirmation",
     }
     weights = {
-        "volume": 20, "consolidation": 20, "ma_alignment": 15,
-        "resistance": 15, "momentum": 10, "rel_strength": 10, "fundamentals": 10,
+        "trend": 30, "momentum": 25, "volume": 20, "setup": 25, "weekly": 5,
     }
 
     names, scores, contributions, colors_list = [], [], [], []
