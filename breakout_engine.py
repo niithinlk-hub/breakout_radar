@@ -17,14 +17,18 @@ logger = logging.getLogger(__name__)
 class BreakoutEngine:
     """Compute BPS and all sub-factor scores for a single stock."""
 
+    # Scoring matrix (base 100, +5 weekly bonus)
+    #   Trend 30    — price vs 20/50/200 SMA
+    #   Momentum 25 — RSI zone + MACD direction
+    #   Volume 20   — today vs 20d avg
+    #   Setup 25    — 52W high proximity + BB squeeze
+    #   Weekly +5   — weekly trend confirmation (bonus)
     WEIGHTS = {
-        "volume":     0.20,
-        "consolidation": 0.20,
-        "ma_alignment":  0.15,
-        "resistance":    0.15,
-        "momentum":      0.10,
-        "rel_strength":  0.10,
-        "fundamentals":  0.10,
+        "trend":    0.30,
+        "momentum": 0.25,
+        "volume":   0.20,
+        "setup":    0.25,
+        "weekly":   0.05,
     }
 
     def __init__(self, df: pd.DataFrame, benchmark_df: Optional[pd.DataFrame] = None):
@@ -52,6 +56,10 @@ class BreakoutEngine:
         # EMAs
         for w in [20, 50, 100, 200]:
             df[f"ema{w}"] = ta.trend.EMAIndicator(close=close, window=w).ema_indicator()
+
+        # SMAs (used by new Trend + Weekly scoring)
+        for w in [20, 50, 200]:
+            df[f"sma{w}"] = close.rolling(w).mean()
 
         # Bollinger Bands
         bb = ta.volatility.BollingerBands(close=close, window=20, window_dev=2)
@@ -378,6 +386,115 @@ class BreakoutEngine:
         return min(10.0, max(0.0, score))
 
     # ──────────────────────────────────────────────────────────────────────────
+    # New-matrix scorers (0-10 each)
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def score_trend(self) -> float:
+        """Trend (30% weight) — price vs 20/50/200 SMA + alignment + slope."""
+        df = self.df
+        if len(df) < 210:
+            return 0.0
+        close = float(df["Close"].iloc[-1])
+        s20   = df["sma20"].iloc[-1]
+        s50   = df["sma50"].iloc[-1]
+        s200  = df["sma200"].iloc[-1]
+        if any(pd.isna(x) for x in (s20, s50, s200)):
+            return 0.0
+        pts = 0.0
+        if close > s20:       pts += 2.5
+        if s20 > s50:         pts += 2.5
+        if s50 > s200:        pts += 2.5
+        # Slope check — all three rising vs ~5/10/20 bars prior
+        try:
+            s20_prev  = df["sma20"].iloc[-6]
+            s50_prev  = df["sma50"].iloc[-11]
+            s200_prev = df["sma200"].iloc[-21]
+            if s20 > s20_prev and s50 > s50_prev and s200 > s200_prev:
+                pts += 2.5
+        except (IndexError, KeyError):
+            pass
+        return min(10.0, pts)
+
+    def score_setup(self) -> float:
+        """Setup (25% weight) — 52W high proximity + BB squeeze."""
+        df = self.df
+        if len(df) < 60:
+            return 0.0
+        close = float(df["Close"].iloc[-1])
+        wk52 = df["High"].rolling(252, min_periods=60).max().iloc[-1]
+        pct_below_52w = (wk52 - close) / wk52 * 100.0 if not pd.isna(wk52) and wk52 > 0 else 100.0
+
+        # 52W proximity — 5.2 pts max
+        if pct_below_52w <= 2:
+            prox = 5.2
+        elif pct_below_52w <= 8:
+            prox = 4.0
+        elif pct_below_52w <= 15:
+            prox = 2.4
+        else:
+            prox = 1.2
+
+        # BB squeeze — 4.8 pts max, percentile of BB width in last 60 bars
+        bw = df["bb_width"].iloc[max(0, len(df) - 60):].dropna()
+        bw_now = df["bb_width"].iloc[-1]
+        if len(bw) >= 20 and not pd.isna(bw_now):
+            pct_rank = (bw < bw_now).mean()
+            if pct_rank <= 0.2:
+                sq = 4.8
+            elif pct_rank <= 0.4:
+                sq = 3.2
+            elif pct_rank <= 0.6:
+                sq = 2.0
+            else:
+                sq = 0.8
+        else:
+            sq = 2.0
+        return min(10.0, prox + sq)
+
+    def score_weekly(self) -> float:
+        """Weekly bonus (5% weight) — weekly trend confirmation.
+
+        Returns 10.0 when last completed weekly bar has:
+        close > 20W SMA, MACD line > signal, RSI > 50. Else 0.
+        """
+        df = self.df
+        if len(df) < 120:
+            return 0.0
+        try:
+            wk = df[["Open", "High", "Low", "Close", "Volume"]].resample("W-FRI").agg({
+                "Open": "first", "High": "max", "Low": "min",
+                "Close": "last", "Volume": "sum",
+            }).dropna()
+            if len(wk) < 22:
+                return 0.0
+            wc = wk["Close"].astype(float)
+            sma20w = wc.rolling(20).mean()
+            ema12  = wc.ewm(span=12, adjust=False).mean()
+            ema26  = wc.ewm(span=26, adjust=False).mean()
+            macd_l = ema12 - ema26
+            macd_s = macd_l.ewm(span=9, adjust=False).mean()
+            # RSI
+            delta = wc.diff()
+            gain = delta.clip(lower=0.0)
+            loss = -delta.clip(upper=0.0)
+            ag = gain.ewm(alpha=1 / 14, min_periods=14, adjust=False).mean()
+            al = loss.ewm(alpha=1 / 14, min_periods=14, adjust=False).mean()
+            rs = ag / al.replace(0, np.nan)
+            rsi_w = 100.0 - (100.0 / (1.0 + rs))
+            # Use last-completed weekly (shift 1 to avoid current-week look-ahead)
+            idx = -2 if len(wk) >= 22 else -1
+            c_w   = float(wc.iloc[idx])
+            s_w   = float(sma20w.iloc[idx])
+            l_w   = float(macd_l.iloc[idx])
+            sig_w = float(macd_s.iloc[idx])
+            r_w   = float(rsi_w.iloc[idx])
+            if c_w > s_w and l_w > sig_w and r_w > 50:
+                return 10.0
+        except Exception:
+            return 0.0
+        return 0.0
+
+    # ──────────────────────────────────────────────────────────────────────────
     # Composite BPS
     # ──────────────────────────────────────────────────────────────────────────
 
@@ -387,17 +504,16 @@ class BreakoutEngine:
         market_cap: float = 0,
     ) -> Tuple[float, Dict[str, float]]:
         """
-        Returns (bps_score_0_100, factor_scores_dict).
+        Returns (bps_score_0_105, factor_scores_dict).
         Each factor score is 0-10 before weighting.
+        Weekly is a +5 bonus so max total = 105.
         """
         scores = {
-            "volume":        self.score_volume(),
-            "consolidation": self.score_consolidation(),
-            "ma_alignment":  self.score_ma_alignment(),
-            "resistance":    self.score_resistance_proximity(),
-            "momentum":      self.score_momentum(),
-            "rel_strength":  self.score_relative_strength(bench_df),
-            "fundamentals":  self.score_fundamentals(market_cap),
+            "trend":    self.score_trend(),
+            "momentum": self.score_momentum(),
+            "volume":   self.score_volume(),
+            "setup":    self.score_setup(),
+            "weekly":   self.score_weekly(),
         }
         bps = sum(scores[k] * self.WEIGHTS[k] * 10 for k in scores)
         return round(bps, 1), scores
