@@ -48,6 +48,8 @@ def _init_state() -> None:
         "watchlist": [],
         "selected_ticker": None,
         "universe_category": "full",
+        "ui_universe_cat": "nifty50",
+        "load_notice": None,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -78,10 +80,19 @@ def render_sidebar() -> Dict:
             "Nifty Midcap 150":     "midcap150",
             "Nifty Smallcap 250":   "smallcap250",
         }
+        reverse_universe_options = {v: k for k, v in universe_options.items()}
+        default_label = reverse_universe_options.get(
+            st.session_state.get("ui_universe_cat", "nifty50"),
+            "Nifty 50",
+        )
         universe_label = st.selectbox(
-            "Stock Universe", list(universe_options.keys()), index=0, label_visibility="collapsed"
+            "Stock Universe",
+            list(universe_options.keys()),
+            index=list(universe_options.keys()).index(default_label),
+            label_visibility="collapsed",
         )
         universe_cat = universe_options[universe_label]
+        st.session_state.ui_universe_cat = universe_cat
 
         # Custom ticker input
         custom_raw = st.text_area(
@@ -97,6 +108,7 @@ def render_sidebar() -> Dict:
             st.cache_data.clear()
             st.session_state.metrics_df = None
             st.session_state.stocks_data = None
+            st.session_state.load_notice = None
             st.rerun()
 
         if st.session_state.data_timestamp:
@@ -147,47 +159,64 @@ def render_sidebar() -> Dict:
 
 def load_data(universe_cat: str, custom_tickers: List[str]) -> None:
     """Fetch data for universe if not already loaded."""
-    base_tickers = get_tickers_ns(universe_cat)
-    all_tickers = list(dict.fromkeys(base_tickers + custom_tickers))
-
     # Check if we need to re-fetch
     if (st.session_state.stocks_data is not None and
             st.session_state.universe_category == universe_cat and
             st.session_state.metrics_df is not None):
         return
 
-    st.session_state.universe_category = universe_cat
+    def fetch_and_score(target_universe: str) -> Tuple[Dict, List[str], str, Optional[pd.DataFrame], pd.DataFrame]:
+        base_tickers = get_tickers_ns(target_universe)
+        all_tickers = list(dict.fromkeys(base_tickers + custom_tickers))
 
-    with st.spinner("Loading market data…"):
-        stocks_data, failed, timestamp = fetch_universe(
-            tuple(all_tickers), period="1y", interval="1d"
+        with st.spinner("Loading market data…"):
+            stocks_data, failed, timestamp = fetch_universe(
+                tuple(all_tickers), period="1y", interval="1d"
+            )
+            bench_df = get_nifty50_cached()
+
+        with st.spinner("Computing breakout scores…"):
+            metrics_df = compute_metrics_for_universe(stocks_data, bench_df)
+
+        pattern_col = []
+        for _, row in metrics_df.iterrows():
+            ticker = row["ticker"]
+            df_stock = stocks_data.get(ticker)
+            if df_stock is not None and len(df_stock) >= 20:
+                try:
+                    detector = PatternDetector(df_stock)
+                    best_name, _ = detector.get_best_pattern()
+                    pattern_col.append(best_name)
+                except Exception:
+                    pattern_col.append("—")
+            else:
+                pattern_col.append("—")
+
+        metrics_df["pattern"] = pattern_col
+        return stocks_data, failed, timestamp, bench_df, metrics_df
+
+    st.session_state.load_notice = None
+    stocks_data, failed, timestamp, bench_df, metrics_df = fetch_and_score(universe_cat)
+    resolved_universe = universe_cat
+
+    if (
+        universe_cat == "full"
+        and not custom_tickers
+        and (metrics_df.empty or len(metrics_df) < 25)
+    ):
+        fallback_universe = "nifty50"
+        stocks_data, failed, timestamp, bench_df, metrics_df = fetch_and_score(fallback_universe)
+        resolved_universe = fallback_universe
+        st.session_state.ui_universe_cat = fallback_universe
+        st.session_state.load_notice = (
+            "Full 475 hit market-data provider limits, so the app fell back to Nifty 50 for a stable load."
         )
-        bench_df = get_nifty50_cached()
 
+    st.session_state.universe_category = resolved_universe
     st.session_state.stocks_data = stocks_data
     st.session_state.bench_df = bench_df
     st.session_state.failed_tickers = failed
     st.session_state.data_timestamp = timestamp
-
-    with st.spinner("Computing breakout scores…"):
-        metrics_df = compute_metrics_for_universe(stocks_data, bench_df)
-
-    # Detect patterns and add to metrics
-    pattern_col = []
-    for _, row in metrics_df.iterrows():
-        t = row["ticker"]
-        df_stock = stocks_data.get(t)
-        if df_stock is not None and len(df_stock) >= 20:
-            try:
-                detector = PatternDetector(df_stock)
-                best_name, _ = detector.get_best_pattern()
-                pattern_col.append(best_name)
-            except Exception:
-                pattern_col.append("—")
-        else:
-            pattern_col.append("—")
-
-    metrics_df["pattern"] = pattern_col
     st.session_state.metrics_df = metrics_df
 
 
@@ -746,9 +775,12 @@ def main() -> None:
     # ── Load data ──
     load_data(settings["universe_cat"], settings["custom_tickers"])
 
+    if st.session_state.load_notice:
+        st.info(st.session_state.load_notice)
+
     full_df = st.session_state.metrics_df
     if full_df is None or full_df.empty:
-        st.warning("Data loading in progress or no data available. Click 'Refresh Data' to retry.")
+        st.warning("No usable market data was returned. Try 'Refresh Data' or switch to Nifty 50.")
         return
 
     filtered_df = apply_filters(full_df, settings)
