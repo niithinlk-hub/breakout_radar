@@ -2,30 +2,6 @@
 
 from typing import Dict, List, Tuple
 
-SYMBOL_RENAMES: Dict[str, str] = {
-    "AEGISCHEM": "AEGISLOG",
-    "APCOTEX": "APCOTEXIND",
-    "CENTURYTEX": "ABREL",
-    "TECHNOELE": "TECHNOE",
-}
-
-EXCLUDED_TICKERS = {
-    "PUROHIT",
-    "ROLTAS",
-    "SYSTEMIX",
-    "TATAMETALI",
-    "TJSB",
-    "THIRUMALAI",
-    "TRIPATHYI",
-    "TUFROPES",
-    "VVFLTD",
-    "WEBEL",
-    "WIPIND",
-    "ZODJRDMKJ",
-}
-
-FULL_UNIVERSE_LIMIT = 475
-
 # ── Nifty 50 ─────────────────────────────────────────────────────────────────
 NIFTY_50: List[str] = [
     "ADANIENT", "ADANIPORTS", "APOLLOHOSP", "ASIANPAINT", "AXISBANK",
@@ -51,7 +27,7 @@ NIFTY_NEXT_50: List[str] = [
     "OFSS", "PAGEIND", "PIIND", "PIDILITIND", "RECLTD",
     "SAIL", "SIEMENS", "SRF", "TORNTPHARM", "TRENT",
     "TVSMOTOR", "UBL", "VEDL", "VOLTAS", "ADANIGREEN",
-    "ADANITRANS", "BALKRISIND", "ZOMATO", "ZEEL", "WHIRLPOOL",
+    "ADANIENSOL", "BALKRISIND", "ZOMATO", "ZEEL", "WHIRLPOOL",
 ]
 
 # ── Nifty Midcap 150 ──────────────────────────────────────────────────────────
@@ -69,7 +45,7 @@ NIFTY_MIDCAP_150: List[str] = [
     "HATSUN", "HDFCAMC", "HFCL", "HIKAL", "HINDPETRO",
     "HONAUT", "HUDCO", "IBREALEST", "IDFC", "IDFCFIRSTB",
     "IEX", "IIFL", "INDHOTEL", "INDIAMART", "INDIANB",
-    "IOLCP", "IPCA", "IRCTC", "JBCHEPHARM", "JKCEMENT",
+    "IOLCP", "IPCALAB", "IRCTC", "JBCHEPHARM", "JKCEMENT",
     "JKLAKSHMI", "JKPAPER", "JKTYRES", "JMFINANCIL", "JUBLINGREA",
     "KAJARIACER", "KALPATPOWR", "KANSAINER", "KEC", "KPITTECH",
     "KRBL", "LALPATHLAB", "LAURUSLABS", "LEMONTREE", "LICI",
@@ -111,7 +87,7 @@ NIFTY_SMALLCAP_250: List[str] = [
     "GLOBUSSPR", "GODFRYPHLP", "GOLDIAM", "GOODLUCK", "GREAVESCOT",
     "GREENPANEL", "GUFICBIO", "GULFOILLUB", "HARDCASTLE", "HBLPOWER",
     "HERANBA", "HIMATSEIDE", "HMVL", "HOMEFIRST", "HSIL",
-    "IGARASHI", "IGPL", "IIFLSEC", "IMFA", "INDORAMA",
+    "IGARASHI", "IGPL", "IMFA", "INDORAMA",
     "INFIBEAM", "IONEXCHANG", "IRCON", "ISGEC", "J&KBANK",
     "JAGRAN", "JAIBALAJI", "JAL", "JASH", "JAYAGROGN",
     "JOCIL", "JPPOWER", "JUSTDIAL", "KALYANKJIL", "KELLTONTEC",
@@ -124,8 +100,8 @@ NIFTY_SMALLCAP_250: List[str] = [
     "NAHARPOLY", "NALCO", "NBCC", "NETWEB", "NFL",
     "NGLFINECHEM", "NIITLTD", "NLCINDIA", "NUCLEUS", "OCCL",
     "ONMOBILE", "OPTIEMUS", "PANAMAPET", "PARAGMILK", "PASHUPATI",
-    "PAUSHAKLTD", "PCJEWELLER", "PLASTIBLENDS", "POLYPLEX", "PRAJ",
-    "PRECOT", "PRESTIGE", "PRICOL", "PRISM", "QUICKHEAL",
+    "PAUSHAKLTD", "PCJEWELLER", "PLASTIBLENDS", "POLYPLEX",
+    "PRECOT", "PRESTIGE", "PRICOLLTD", "PRISM", "QUICKHEAL",
     "RADCON", "RAILVIKAS", "RCF", "RELIGARE", "RENUKA",
     "RICOAUTO", "RKFORGE", "RUPA", "RUSHIL", "SAFARI",
     "SAREGAMA", "SAVITA", "SHAKTIPUMP", "SHANKARA", "SHARDACROP",
@@ -272,7 +248,7 @@ COMPANY_INFO: Dict[str, Tuple[str, str]] = {
     "VEDL": ("Vedanta", "Metals"),
     "VOLTAS": ("Voltas", "Consumer"),
     "ADANIGREEN": ("Adani Green Energy", "Power"),
-    "ADANITRANS": ("Adani Transmission", "Power"),
+    "ADANIENSOL": ("Adani Energy Solutions", "Power"),
     "BALKRISIND": ("Balkrishna Industries", "Auto Ancillary"),
     "ZOMATO": ("Zomato", "Consumer"),
     "ZEEL": ("Zee Entertainment", "Media"),
@@ -344,7 +320,7 @@ COMPANY_INFO: Dict[str, Tuple[str, str]] = {
     "INDIAMART": ("IndiaMART InterMESH", "IT"),
     "INDIANB": ("Indian Bank", "Banking"),
     "IOLCP": ("IOL Chemicals and Pharmaceuticals", "Pharma"),
-    "IPCA": ("IPCA Laboratories", "Pharma"),
+    "IPCALAB": ("IPCA Laboratories", "Pharma"),
     "IRCTC": ("Indian Railway Catering and Tourism", "Tourism"),
     "JBCHEPHARM": ("JB Chemicals & Pharmaceuticals", "Pharma"),
     "JKCEMENT": ("JK Cement", "Cement"),
@@ -461,19 +437,7 @@ COMPANY_INFO: Dict[str, Tuple[str, str]] = {
     # Default for unmapped
 }
 
-COMPANY_INFO.update(
-    {
-        "AEGISLOG": ("Aegis Logistics", "Oil & Gas"),
-        "APCOTEXIND": ("Apcotex Industries", "Chemicals"),
-        "ABREL": ("Aditya Birla Real Estate", "Real Estate"),
-    }
-)
-
 SECTOR_LIST = sorted(set(v[1] for v in COMPANY_INFO.values()))
-
-
-def _normalize_symbol(symbol: str) -> str:
-    return SYMBOL_RENAMES.get(symbol, symbol)
 
 
 def get_universe(category: str = "full") -> List[str]:
@@ -486,17 +450,7 @@ def get_universe(category: str = "full") -> List[str]:
         "full": NIFTY_50 + NIFTY_NEXT_50 + NIFTY_MIDCAP_150 + NIFTY_SMALLCAP_250 + ADDITIONAL_LIQUID,
     }
     raw = universe_map.get(category, NIFTY_50 + NIFTY_NEXT_50 + NIFTY_MIDCAP_150 + NIFTY_SMALLCAP_250 + ADDITIONAL_LIQUID)
-    cleaned: List[str] = []
-    seen = set()
-    for symbol in raw:
-        normalized = _normalize_symbol(symbol)
-        if normalized in EXCLUDED_TICKERS or normalized in seen:
-            continue
-        seen.add(normalized)
-        cleaned.append(normalized)
-    if category == "full":
-        return cleaned[:FULL_UNIVERSE_LIMIT]
-    return cleaned
+    return list(dict.fromkeys(raw))  # deduplicate preserving order
 
 
 def get_tickers_ns(category: str = "full") -> List[str]:
@@ -505,12 +459,12 @@ def get_tickers_ns(category: str = "full") -> List[str]:
 
 
 def get_company_name(ticker: str) -> str:
-    base = _normalize_symbol(ticker.replace(".NS", ""))
+    base = ticker.replace(".NS", "")
     return COMPANY_INFO.get(base, (base, "Unknown"))[0]
 
 
 def get_sector(ticker: str) -> str:
-    base = _normalize_symbol(ticker.replace(".NS", ""))
+    base = ticker.replace(".NS", "")
     return COMPANY_INFO.get(base, ("Unknown", "Unknown"))[1]
 
 
