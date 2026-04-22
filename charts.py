@@ -9,7 +9,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from styles import PLOTLY_TEMPLATE
+from styles import PLOTLY_TEMPLATE, plotly_layout
 
 COLORS = {
     "green":    "#00FF88",
@@ -143,12 +143,11 @@ def build_candlestick(
                 line=dict(color=COLORS["muted"], width=1, dash="dot"),
             ), row=3, col=1)
 
-    fig.update_layout(
+    fig.update_layout(**plotly_layout(
         title=dict(text=f"<b>{ticker}</b>", font=dict(size=16, color=COLORS["blue"])),
         xaxis_rangeslider_visible=False,
         height=680,
-        **PLOTLY_TEMPLATE["layout"],
-    )
+    ))
     fig.update_yaxes(tickformat=",.0f", tickprefix="₹")
     return fig
 
@@ -187,7 +186,7 @@ def build_bps_gauge(score: float) -> go.Figure:
         title=dict(text="Breakout Probability Score", font=dict(size=13, color=COLORS["muted"])),
         domain=dict(x=[0, 1], y=[0, 1]),
     ))
-    fig.update_layout(height=250, **PLOTLY_TEMPLATE["layout"], margin=dict(l=20, r=20, t=40, b=10))
+    fig.update_layout(**plotly_layout(height=250, margin=dict(l=20, r=20, t=40, b=10)))
     return fig
 
 
@@ -232,12 +231,11 @@ def build_score_breakdown(factor_scores: Dict[str, float]) -> go.Figure:
         textposition="outside",
         textfont=dict(color=COLORS["muted"], size=10),
     ))
-    fig.update_layout(
+    fig.update_layout(**plotly_layout(
         xaxis=dict(range=[0, 12], title="Score (0-10)"),
         height=300,
-        **PLOTLY_TEMPLATE["layout"],
         margin=dict(l=200, r=80, t=20, b=20),
-    )
+    ))
     return fig
 
 
@@ -297,11 +295,10 @@ def build_treemap(metrics_df: pd.DataFrame) -> go.Figure:
         pathbar=dict(visible=True),
         tiling=dict(packing="squarify"),
     ))
-    fig.update_layout(
+    fig.update_layout(**plotly_layout(
         height=600,
-        **PLOTLY_TEMPLATE["layout"],
         margin=dict(l=10, r=10, t=30, b=10),
-    )
+    ))
     return fig
 
 
@@ -336,12 +333,11 @@ def build_sector_heatmap(metrics_df: pd.DataFrame) -> go.Figure:
         textposition="outside",
         textfont=dict(color=COLORS["muted"], size=11),
     ))
-    fig.update_layout(
+    fig.update_layout(**plotly_layout(
         xaxis=dict(range=[0, 105], title="Average BPS"),
         height=max(400, len(sector_avg) * 28),
-        **PLOTLY_TEMPLATE["layout"],
         margin=dict(l=180, r=60, t=20, b=30),
-    )
+    ))
     return fig
 
 
@@ -365,12 +361,11 @@ def build_equity_curve(
         name="Nifty 50 Benchmark", line=dict(color=COLORS["blue"], width=2, dash="dot"),
     ))
     fig.add_hline(y=100, line=dict(color=COLORS["border"], width=1, dash="dash"))
-    fig.update_layout(
+    fig.update_layout(**plotly_layout(
         title=dict(text=title, font=dict(size=14, color=COLORS["muted"])),
         yaxis_title="Indexed Return (100 = start)",
         height=380,
-        **PLOTLY_TEMPLATE["layout"],
-    )
+    ))
     return fig
 
 
@@ -390,13 +385,12 @@ def build_sector_pie(metrics_df: pd.DataFrame) -> go.Figure:
         ),
         textfont=dict(size=10, color=COLORS["text_primary"] if "text_primary" in COLORS else "white"),
     ))
-    fig.update_layout(
+    fig.update_layout(**plotly_layout(
         height=320,
         showlegend=True,
         legend=dict(font=dict(size=9)),
-        **PLOTLY_TEMPLATE["layout"],
         margin=dict(l=10, r=10, t=10, b=10),
-    )
+    ))
     return fig
 
 
@@ -413,12 +407,11 @@ def build_bps_sparkline(bps_history: List[float], ticker: str) -> go.Figure:
         marker=dict(size=4, color=color),
         name=ticker,
     ))
-    fig.update_layout(
+    fig.update_layout(**plotly_layout(
         height=120,
         margin=dict(l=10, r=10, t=10, b=10),
         showlegend=False,
         xaxis=dict(visible=False),
         yaxis=dict(range=[0, 100]),
-        **PLOTLY_TEMPLATE["layout"],
-    )
+    ))
     return fig
