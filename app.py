@@ -800,8 +800,14 @@ def tab_buy_setups() -> None:
     min_rr    = f2.slider("Min R:R", 1.0, 5.0, 1.5, step=0.5)
     sector_opts = ["All"] + sorted(setups["sector"].dropna().unique().tolist())
     sel_sector  = f3.selectbox("Sector", sector_opts, index=0)
-    max_rows    = f4.slider("Show top N", 10, min(100, len(setups)),
-                            min(25, len(setups)), step=5)
+    n = len(setups)
+    if n <= 10:
+        max_rows = n
+        f4.caption(f"Showing all {n} setups")
+    else:
+        slider_max = min(100, n)
+        max_rows = f4.slider("Show top N", 10, slider_max,
+                             min(25, slider_max), step=5)
 
     view = setups[(setups["score"] >= min_score) & (setups["rr_ratio"] >= min_rr)]
     if sel_sector != "All":
