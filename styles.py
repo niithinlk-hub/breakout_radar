@@ -161,3 +161,15 @@ PLOTLY_TEMPLATE = dict(
         legend=dict(bgcolor="#161B22", bordercolor="#30363D", borderwidth=1),
     )
 )
+
+
+def plotly_layout(**overrides) -> dict:
+    """Merge the dark template with per-call overrides.
+
+    Overriding keys (xaxis, yaxis, legend, margin, height, etc.) replace the
+    template defaults wholesale, avoiding the "multiple values for keyword
+    argument" TypeError raised by unpacking both dicts into update_layout.
+    """
+    merged = dict(PLOTLY_TEMPLATE["layout"])
+    merged.update(overrides)
+    return merged
