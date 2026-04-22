@@ -453,14 +453,12 @@ def get_universe(category: str = "full") -> List[str]:
     return list(dict.fromkeys(raw))  # deduplicate preserving order
 
 
-FULL_UNIVERSE_CAP = 350  # limit full universe to avoid rate-limit hammering
-
-
 def get_tickers_ns(category: str = "full") -> List[str]:
-    """Return tickers with .NS suffix for yfinance."""
+    """Return tickers with .NS suffix for yfinance.
+
+    No universe cap — bulk yf.download handles 500+ in a single call.
+    """
     tickers = get_universe(category)
-    if category == "full":
-        tickers = tickers[:FULL_UNIVERSE_CAP]
     return [f"{t}.NS" for t in tickers]
 
 
