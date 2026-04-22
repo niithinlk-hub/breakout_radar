@@ -30,6 +30,7 @@ from tickers import (
 from data_layer import fetch_universe, get_nifty50_cached
 from breakout_engine import BreakoutEngine, compute_metrics_for_universe
 from pattern_detection import PatternDetector, get_pattern_labels
+from scanner import scan_universe, MIN_SCORE_FOR_BUY
 import charts as ch
 
 inject_css()
@@ -188,17 +189,13 @@ def load_data(universe_cat: str, custom_tickers: List[str]) -> None:
 
     stocks_data, failed, timestamp, bench_df, metrics_df = _fetch_and_score(all_tickers, universe_cat)
 
-    # Auto-fallback: full universe hit Yahoo limits → try Nifty 50 instead
-    if (universe_cat == "full" and not custom_tickers and len(metrics_df) < 15):
-        fallback_tickers = get_tickers_ns("nifty50")
-        stocks_data, failed, timestamp, bench_df, metrics_df = _fetch_and_score(fallback_tickers, "Nifty 50")
+    if len(metrics_df) < 5:
         st.session_state.load_notice = (
-            "Full universe hit Yahoo Finance rate limits. Loaded Nifty 50 instead. "
-            "Select 'Nifty 50' in the sidebar or click Refresh Data to retry."
+            f"Only {len(metrics_df)} tickers scored. Yahoo may have returned empty frames — "
+            "click Refresh Data to retry."
         )
 
-    # Keep universe_category = universe_cat so the guard passes on next render
-    # (prevents infinite reload loop when fallback is active)
+
     st.session_state.universe_category = universe_cat
     st.session_state.stocks_data = stocks_data
     st.session_state.bench_df = bench_df
@@ -759,6 +756,136 @@ def tab_watchlist(full_df: pd.DataFrame) -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# BUY SETUPS — confluence scanner (long-only, ranked)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def tab_buy_setups() -> None:
+    st.markdown('<div class="section-header">🎯 High-Probability BUY Setups (Long-Only)</div>',
+                unsafe_allow_html=True)
+
+    stocks_data = st.session_state.stocks_data or {}
+    bench_df    = st.session_state.bench_df
+
+    if not stocks_data:
+        st.warning("Load data first (sidebar → Refresh Data).")
+        return
+
+    with st.spinner(f"Scanning {len(stocks_data)} stocks through confluence gates…"):
+        setups = scan_universe(stocks_data, bench_df)
+
+    # ── Summary strip ────────────────────────────────────────────────────────
+    c1, c2, c3, c4, c5 = st.columns(5)
+    c1.metric("Universe Scanned", f"{len(stocks_data):,}")
+    c2.metric("BUY Setups", f"{len(setups):,}")
+    if not setups.empty:
+        c3.metric("A+ / A Grade", f"{int((setups['grade'].isin(['A+','A'])).sum())}")
+        c4.metric("Avg Score", f"{setups['score'].mean():.1f}")
+        c5.metric("Median R:R", f"{setups['rr_ratio'].median():.2f}")
+    else:
+        c3.metric("A+ / A", "0")
+        c4.metric("Avg Score", "—")
+        c5.metric("Median R:R", "—")
+
+    if setups.empty:
+        st.info(
+            f"No setups cleared all confluence gates. "
+            f"Score cutoff is {MIN_SCORE_FOR_BUY:.0f}. "
+            "Market may be weak — check again after next candle close."
+        )
+        return
+
+    # ── Filters ──────────────────────────────────────────────────────────────
+    f1, f2, f3, f4 = st.columns([1, 1, 1, 2])
+    min_score = f1.slider("Min score", 65, 100, 70, step=5)
+    min_rr    = f2.slider("Min R:R", 1.0, 5.0, 1.5, step=0.5)
+    sector_opts = ["All"] + sorted(setups["sector"].dropna().unique().tolist())
+    sel_sector  = f3.selectbox("Sector", sector_opts, index=0)
+    max_rows    = f4.slider("Show top N", 10, min(100, len(setups)),
+                            min(25, len(setups)), step=5)
+
+    view = setups[(setups["score"] >= min_score) & (setups["rr_ratio"] >= min_rr)]
+    if sel_sector != "All":
+        view = view[view["sector"] == sel_sector]
+    view = view.head(max_rows)
+
+    if view.empty:
+        st.info("No setups match current filters.")
+        return
+
+    # ── Ranked display ───────────────────────────────────────────────────────
+    display_cols = {
+        "rank": "#",
+        "ticker": "Ticker",
+        "name": "Name",
+        "sector": "Sector",
+        "grade": "Grade",
+        "score": "Score",
+        "cmp": "CMP",
+        "change_pct": "Chg%",
+        "vol_surge": "Vol×",
+        "rsi": "RSI",
+        "rs_3m_pct": "RS 3M%",
+        "consolidation": "Base%",
+        "entry": "Entry",
+        "stop": "Stop",
+        "target1": "T1 (2R)",
+        "target2": "T2 (3R)",
+        "target3": "T3",
+        "risk_pct": "Risk%",
+        "rr_ratio": "R:R",
+        "reasons": "Signals",
+    }
+    disp = view[[c for c in display_cols if c in view.columns]].rename(columns=display_cols)
+
+    def _grade_bg(series):
+        colors = {"A+": "rgba(0,255,136,0.35)", "A": "rgba(0,255,136,0.22)",
+                  "B+": "rgba(255,184,0,0.22)", "B": "rgba(255,184,0,0.12)"}
+        return [f"background-color: {colors.get(v, '')}" for v in series]
+
+    def _score_bg(series):
+        out = []
+        for val in series:
+            try:
+                v = float(val) / 100.0
+                v = max(0.0, min(1.0, v))
+                r = int(200 - 155 * v) if v > 0.5 else 220
+                g = int(120 + 135 * v)
+                b = 60
+                out.append(f"background-color: rgba({r},{g},{b},0.28)")
+            except (TypeError, ValueError):
+                out.append("")
+        return out
+
+    styled = (disp.style
+              .apply(_grade_bg, subset=["Grade"])
+              .apply(_score_bg, subset=["Score"])
+              .format({
+                  "Score": "{:.1f}", "CMP": "₹{:.2f}", "Chg%": "{:+.2f}%",
+                  "Vol×": "{:.2f}", "RSI": "{:.1f}", "RS 3M%": "{:+.2f}%",
+                  "Base%": "{:.1f}%",
+                  "Entry": "₹{:.2f}", "Stop": "₹{:.2f}",
+                  "T1 (2R)": "₹{:.2f}", "T2 (3R)": "₹{:.2f}", "T3": "₹{:.2f}",
+                  "Risk%": "{:.2f}%", "R:R": "{:.2f}",
+              }))
+    st.dataframe(styled, use_container_width=True, height=min(720, 60 + 35 * len(view)))
+
+    # ── CSV export + add-to-watchlist ────────────────────────────────────────
+    e1, e2 = st.columns([1, 4])
+    csv = view.to_csv(index=False).encode("utf-8")
+    e1.download_button("⬇ Download CSV", data=csv,
+                       file_name="buy_setups.csv", mime="text/csv",
+                       use_container_width=True)
+    with e2:
+        if st.button("⭐ Add top 10 to watchlist", use_container_width=True):
+            added = 0
+            for t in view["ticker"].head(10).tolist():
+                if t not in st.session_state.watchlist:
+                    st.session_state.watchlist.append(t)
+                    added += 1
+            st.success(f"Added {added} tickers to watchlist.")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Main entrypoint
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -793,13 +920,17 @@ def main() -> None:
     filtered_df = apply_filters(full_df, settings)
 
     # ── Tabs ──
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab0, tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "🎯 BUY Setups",
         "📡 Breakout Radar",
         "🔬 Analysis",
         "🗺 Market Heatmap",
         "📊 Backtest",
         "⭐ Watchlist",
     ])
+
+    with tab0:
+        tab_buy_setups()
 
     with tab1:
         tab_breakout_radar(filtered_df, full_df, settings)
