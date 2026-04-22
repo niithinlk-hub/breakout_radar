@@ -30,7 +30,7 @@ from tickers import (
 from data_layer import fetch_universe, get_nifty50_cached
 from breakout_engine import BreakoutEngine, compute_metrics_for_universe
 from pattern_detection import PatternDetector, get_pattern_labels
-from scanner import scan_universe, MIN_SCORE_FOR_BUY
+from scanner import scan_universe, backtest_signals, MIN_SCORE_FOR_BUY, BACKTEST_HOLD_DAYS
 import charts as ch
 
 inject_css()
@@ -99,6 +99,9 @@ def render_sidebar() -> Dict:
             st.cache_data.clear()
             st.session_state.metrics_df = None
             st.session_state.stocks_data = None
+            for k in list(st.session_state.keys()):
+                if k.startswith("scanner_bt_"):
+                    del st.session_state[k]
             st.rerun()
 
         if st.session_state.data_timestamp:
@@ -760,7 +763,7 @@ def tab_watchlist(full_df: pd.DataFrame) -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def tab_buy_setups() -> None:
-    st.markdown('<div class="section-header">🎯 High-Probability BUY Setups (Long-Only)</div>',
+    st.markdown('<div class="section-header">🎯 Quick Alpha — MACD + RSI + StochRSI Confluence (1-Week Swing)</div>',
                 unsafe_allow_html=True)
 
     stocks_data = st.session_state.stocks_data or {}
@@ -770,27 +773,34 @@ def tab_buy_setups() -> None:
         st.warning("Load data first (sidebar → Refresh Data).")
         return
 
-    with st.spinner(f"Scanning {len(stocks_data)} stocks through confluence gates…"):
+    with st.spinner(f"Scanning {len(stocks_data)} stocks for triple-confluence setups…"):
         setups = scan_universe(stocks_data, bench_df)
 
+    # ── Walk-forward backtest (cached per session) ───────────────────────────
+    bt_key = f"scanner_bt_{len(stocks_data)}"
+    if bt_key not in st.session_state:
+        with st.spinner("Running walk-forward backtest (120d × 5d-hold) …"):
+            st.session_state[bt_key] = backtest_signals(stocks_data)
+    bt = st.session_state[bt_key]
+
     # ── Summary strip ────────────────────────────────────────────────────────
-    c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("Universe Scanned", f"{len(stocks_data):,}")
-    c2.metric("BUY Setups", f"{len(setups):,}")
-    if not setups.empty:
-        c3.metric("A+ / A Grade", f"{int((setups['grade'].isin(['A+','A'])).sum())}")
-        c4.metric("Avg Score", f"{setups['score'].mean():.1f}")
-        c5.metric("Median R:R", f"{setups['rr_ratio'].median():.2f}")
-    else:
-        c3.metric("A+ / A", "0")
-        c4.metric("Avg Score", "—")
-        c5.metric("Median R:R", "—")
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
+    c1.metric("Universe", f"{len(stocks_data):,}")
+    c2.metric("Live Setups", f"{len(setups):,}")
+    c3.metric(f"BT Hit Rate ({BACKTEST_HOLD_DAYS}d)", f"{bt['hit_rate']:.1f}%",
+              help="% of past signals that closed positive after the hold window")
+    c4.metric("BT Avg Return", f"{bt['avg_return']:+.2f}%",
+              help="Mean forward return of all past signals")
+    c5.metric("BT Stop-Out Rate", f"{bt['stop_rate']:.1f}%",
+              help="% of signals that hit the stop before target")
+    c6.metric("BT Signals", f"{bt['signals']:,}",
+              help="Total past signals evaluated in walk-forward")
 
     if setups.empty:
         st.info(
-            f"No setups cleared all confluence gates. "
-            f"Score cutoff is {MIN_SCORE_FOR_BUY:.0f}. "
-            "Market may be weak — check again after next candle close."
+            f"No live setups cleared all confluence gates right now. "
+            f"Score cutoff {MIN_SCORE_FOR_BUY:.0f}. Backtest above reflects the "
+            "algorithm's historical edge over the last 120 trading days."
         )
         return
 
@@ -830,8 +840,8 @@ def tab_buy_setups() -> None:
         "change_pct": "Chg%",
         "vol_surge": "Vol×",
         "rsi": "RSI",
-        "rs_3m_pct": "RS 3M%",
-        "consolidation": "Base%",
+        "stoch_k": "StochK",
+        "dist_200ema": "Δ200EMA%",
         "entry": "Entry",
         "stop": "Stop",
         "target1": "T1 (2R)",
@@ -867,8 +877,8 @@ def tab_buy_setups() -> None:
               .apply(_score_bg, subset=["Score"])
               .format({
                   "Score": "{:.1f}", "CMP": "₹{:.2f}", "Chg%": "{:+.2f}%",
-                  "Vol×": "{:.2f}", "RSI": "{:.1f}", "RS 3M%": "{:+.2f}%",
-                  "Base%": "{:.1f}%",
+                  "Vol×": "{:.2f}", "RSI": "{:.1f}", "StochK": "{:.1f}",
+                  "Δ200EMA%": "{:+.2f}%",
                   "Entry": "₹{:.2f}", "Stop": "₹{:.2f}",
                   "T1 (2R)": "₹{:.2f}", "T2 (3R)": "₹{:.2f}", "T3": "₹{:.2f}",
                   "Risk%": "{:.2f}%", "R:R": "{:.2f}",
