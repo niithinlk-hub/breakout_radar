@@ -159,6 +159,5 @@ PLOTLY_TEMPLATE = dict(
         xaxis=dict(gridcolor="#30363D", linecolor="#30363D", zerolinecolor="#30363D"),
         yaxis=dict(gridcolor="#30363D", linecolor="#30363D", zerolinecolor="#30363D"),
         legend=dict(bgcolor="#161B22", bordercolor="#30363D", borderwidth=1),
-        margin=dict(l=50, r=20, t=40, b=40),
     )
 )
