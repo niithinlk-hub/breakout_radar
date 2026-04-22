@@ -806,7 +806,7 @@ def tab_buy_setups() -> None:
 
     # ── Filters ──────────────────────────────────────────────────────────────
     f1, f2, f3, f4 = st.columns([1, 1, 1, 2])
-    min_score = f1.slider("Min score", 65, 100, 70, step=5)
+    min_score = f1.slider("Min score", 65, 105, 75, step=5)
     min_rr    = f2.slider("Min R:R", 1.0, 5.0, 1.5, step=0.5)
     sector_opts = ["All"] + sorted(setups["sector"].dropna().unique().tolist())
     sel_sector  = f3.selectbox("Sector", sector_opts, index=0)
