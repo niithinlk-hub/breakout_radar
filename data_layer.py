@@ -71,6 +71,15 @@ def _extract_ticker_data(raw: pd.DataFrame, ticker: str) -> Optional[pd.DataFram
         else:
             return None
 
+        # Flatten any residual MultiIndex on columns
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(-1)
+        df.columns = [str(c) for c in df.columns]
+
+        # Strip timezone from index — ta library fails with tz-aware DatetimeIndex
+        if hasattr(df.index, "tz") and df.index.tz is not None:
+            df.index = df.index.tz_localize(None)
+
         df.dropna(how="all", inplace=True)
         if df.empty or len(df) < 20:
             return None
