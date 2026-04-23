@@ -17,6 +17,7 @@ from styles import plotly_layout
 from . import backtest as bt
 from . import data_loader, screener
 from .model import MLBundle, feature_importance, BUNDLE_PATH
+from .patterns import PatternScanner
 from .risk import compute_levels, size_position, TradeLevels
 
 
@@ -94,23 +95,35 @@ def _today_picks(bundle: MLBundle, stocks: Dict[str, pd.DataFrame],
     lower = bundle.label_params.get("lower_pct", -0.03)
 
     sized = []
+    pattern_details: Dict[str, Dict] = {}
     for _, row in picks.iterrows():
         df = stocks.get(row["ticker"])
         if df is None:
             continue
         lvls = compute_levels(df, upper_pct=upper, lower_pct=lower)
         sz = size_position(capital, row["prob"], lvls, mode=mode)
+        # Pattern scan for this pick
+        try:
+            p_res = PatternScanner(df).scan()
+        except Exception:
+            p_res = {"patterns": [], "pattern_count": 0,
+                     "pattern_confidence_avg": 0.0, "pattern_details": {}}
+        pattern_details[row["ticker"]] = p_res["pattern_details"]
         sized.append({**row.to_dict(), **{
             "kelly_frac": sz.get("kelly_frac", 0.0),
             "capital_pct": sz.get("capital_pct", 0.0),
             "capital_alloc": sz.get("capital_alloc", 0.0),
             "qty": sz.get("qty", 0),
+            "patterns": ", ".join(p_res["patterns"]) if p_res["patterns"] else "—",
+            "n_patterns": p_res["pattern_count"],
+            "pattern_conf": p_res["pattern_confidence_avg"],
         }})
 
     view = pd.DataFrame(sized)
-    display_cols = ["ticker", "prob_pct", "entry", "stop", "target1", "target2",
+    display_cols = ["ticker", "prob_pct", "n_patterns", "pattern_conf",
+                    "entry", "stop", "target1", "target2",
                     "rr", "risk_pct", "reward_pct", "capital_pct", "qty",
-                    "last_bar"]
+                    "patterns", "last_bar"]
     display_cols = [c for c in display_cols if c in view.columns]
 
     st.dataframe(
@@ -119,6 +132,8 @@ def _today_picks(bundle: MLBundle, stocks: Dict[str, pd.DataFrame],
         column_config={
             "ticker": st.column_config.TextColumn("Ticker"),
             "prob_pct": st.column_config.NumberColumn("Prob %", format="%.1f"),
+            "n_patterns": st.column_config.NumberColumn("# Pat", format="%d"),
+            "pattern_conf": st.column_config.NumberColumn("Pat Conf", format="%.2f"),
             "entry": st.column_config.NumberColumn("Entry", format="%.2f"),
             "stop": st.column_config.NumberColumn("Stop", format="%.2f"),
             "target1": st.column_config.NumberColumn("T1 (+5%)", format="%.2f"),
@@ -128,6 +143,7 @@ def _today_picks(bundle: MLBundle, stocks: Dict[str, pd.DataFrame],
             "reward_pct": st.column_config.NumberColumn("Reward %", format="%.2%"),
             "capital_pct": st.column_config.NumberColumn("Alloc %", format="%.2%"),
             "qty": st.column_config.NumberColumn("Qty"),
+            "patterns": st.column_config.TextColumn("Patterns Detected", width="large"),
             "last_bar": st.column_config.TextColumn("Bar"),
         },
     )
@@ -136,6 +152,25 @@ def _today_picks(bundle: MLBundle, stocks: Dict[str, pd.DataFrame],
     st.download_button("Download CSV", data=csv,
                        file_name=f"ml_picks_{datetime.now().strftime('%Y%m%d')}.csv",
                        mime="text/csv")
+
+    # Per-pick pattern detail expanders
+    with st.expander("📐 Pattern details per pick"):
+        any_shown = False
+        for t, details in pattern_details.items():
+            if not details:
+                continue
+            any_shown = True
+            st.markdown(f"**{t}**")
+            rows = []
+            for name, d in details.items():
+                extras = {k: v for k, v in d.items() if k not in ("confidence", "category")}
+                rows.append({"Pattern": name,
+                             "Confidence": f"{d.get('confidence', 0):.2f}",
+                             "Category": d.get("category", "—"),
+                             "Details": ", ".join(f"{k}={v}" for k, v in extras.items())})
+            st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
+        if not any_shown:
+            st.caption("No pattern details available for current picks.")
 
 
 # ──────────────────────────────── Backtest ──────────────────────────────────
