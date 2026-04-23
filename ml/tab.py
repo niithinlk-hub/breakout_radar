@@ -223,7 +223,7 @@ def _today_picks(meta_bundle: MetaBundle, stocks: Dict[str, pd.DataFrame],
             ))
             fig.update_layout(**plotly_layout(
                 height=260, showlegend=False,
-                xaxis=dict(title="SHAP value (→ higher prob)"),
+                xaxis=dict(title=dict(text="SHAP value (-> higher prob)")),
                 margin=dict(l=160, r=40, t=10, b=30),
             ))
             st.plotly_chart(fig, use_container_width=True)
@@ -300,8 +300,8 @@ def _backtest_tab(meta_bundle: MetaBundle, stocks: Dict[str, pd.DataFrame],
                       line_color="#8B949E", annotation_text="base rate")
         fig.update_layout(**plotly_layout(
             height=340,
-            xaxis=dict(title="Probability decile (D10 = highest)"),
-            yaxis=dict(title="Realized +5% hit rate", tickformat=".0%"),
+            xaxis=dict(title=dict(text="Probability decile (D10 = highest)")),
+            yaxis=dict(title=dict(text="Realized +5% hit rate"), tickformat=".0%"),
             margin=dict(l=40, r=20, t=20, b=40),
         ))
         st.plotly_chart(fig, use_container_width=True)
@@ -336,7 +336,7 @@ def _backtest_tab(meta_bundle: MetaBundle, stocks: Dict[str, pd.DataFrame],
             name="Cumulative R"
         ))
         fig.update_layout(**plotly_layout(
-            height=300, xaxis=dict(title=""), yaxis=dict(title="Cumulative R"),
+            height=300, xaxis=dict(title=dict(text="")), yaxis=dict(title=dict(text="Cumulative R")),
             margin=dict(l=40, r=20, t=10, b=40),
         ))
         st.markdown("**Equity curve at prob ≥ 0.60** (+upper on hit, −|lower| on miss)")
@@ -433,7 +433,7 @@ def _diagnostics_tab(meta_bundle: MetaBundle) -> None:
                 orientation="h", marker_color="#00FF88",
             ))
             fig.update_layout(**plotly_layout(
-                height=520, xaxis=dict(title="avg gain importance"),
+                height=520, xaxis=dict(title=dict(text="avg gain importance")),
                 margin=dict(l=220, r=40, t=10, b=40),
             ))
             st.plotly_chart(fig, use_container_width=True)
