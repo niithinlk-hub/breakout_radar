@@ -936,7 +936,8 @@ def main() -> None:
     filtered_df = apply_filters(full_df, settings)
 
     # ── Tabs ──
-    tab0, tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab_ml, tab0, tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "🤖 ML Screener",
         "🎯 BUY Setups",
         "📡 Breakout Radar",
         "🔬 Analysis",
@@ -944,6 +945,18 @@ def main() -> None:
         "📊 Backtest",
         "⭐ Watchlist",
     ])
+
+    with tab_ml:
+        try:
+            from ml.tab import render_ml_screener
+            render_ml_screener(settings)
+        except ModuleNotFoundError as e:
+            st.error(
+                f"ML dependency missing: `{e.name}`. "
+                "Install via `pip install -r requirements.txt` and redeploy."
+            )
+        except Exception as e:
+            st.exception(e)
 
     with tab0:
         tab_buy_setups()
