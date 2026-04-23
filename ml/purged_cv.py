@@ -47,6 +47,7 @@ class PurgedKFold:
         X: pd.DataFrame,
         y=None,
         t1: pd.Series = None,
+        t0: pd.Series = None,
     ) -> Iterator[Tuple[np.ndarray, np.ndarray]]:
         if t1 is None:
             raise ValueError("PurgedKFold.split requires t1 (label end-times)")
@@ -66,9 +67,14 @@ class PurgedKFold:
             edges.append((cursor, cursor + fs))
             cursor += fs
 
-        # Use time index for purge logic
-        t0 = pd.Series(X.index, index=X.index)
-        t1_ = pd.Series(pd.to_datetime(t1.values), index=X.index)
+        # Use explicit t0 if provided (required when X.index is a RangeIndex),
+        # otherwise fall back to X.index (legacy datetime-indexed panels).
+        if t0 is None:
+            t0_values = pd.to_datetime(pd.Index(X.index)).values
+        else:
+            t0_values = pd.to_datetime(pd.Series(t0).values)
+        t0 = pd.Series(t0_values)
+        t1_ = pd.Series(pd.to_datetime(t1.values))
 
         for f_start, f_end in edges:
             test_idx = order[f_start:f_end]
@@ -102,6 +108,7 @@ def cv_score(
     X: pd.DataFrame,
     y: pd.Series,
     t1: pd.Series,
+    t0: pd.Series = None,
     n_splits: int = 5,
     embargo_pct: float = 0.01,
     scorer=None,
@@ -114,7 +121,7 @@ def cv_score(
 
     cv = PurgedKFold(n_splits=n_splits, embargo_pct=embargo_pct)
     scores: List[float] = []
-    for tr, te in cv.split(X, y, t1=t1):
+    for tr, te in cv.split(X, y, t1=t1, t0=t0):
         if len(tr) == 0 or len(te) == 0:
             continue
         est = clone(estimator)
