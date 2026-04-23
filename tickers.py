@@ -12,7 +12,7 @@ NIFTY_50: List[str] = [
     "INFY", "ITC", "JSWSTEEL", "KOTAKBANK", "LT",
     "M&M", "MARUTI", "NESTLEIND", "NTPC", "ONGC",
     "POWERGRID", "RELIANCE", "SBILIFE", "SBIN", "SHREECEM",
-    "SUNPHARMA", "TATACONSUM", "TATAMOTORS", "TATASTEEL", "TCS",
+    "SUNPHARMA", "TATACONSUM", "TATASTEEL", "TCS",
     "TECHM", "TITAN", "ULTRACEMCO", "UPL", "WIPRO",
 ]
 
@@ -23,11 +23,11 @@ NIFTY_NEXT_50: List[str] = [
     "DABUR", "DLF", "GAIL", "GODREJCP", "GODREJPROP",
     "HAVELLS", "ICICIGI", "ICICIPRULI", "INDIGO", "INDUSTOWER",
     "IOC", "JINDALSTEL", "JUBLFOOD", "LUPIN", "MARICO",
-    "MCDOWELL-N", "MFSL", "MUTHOOTFIN", "NAUKRI", "NMDC",
+    "MFSL", "MUTHOOTFIN", "NAUKRI", "NMDC",
     "OFSS", "PAGEIND", "PIIND", "PIDILITIND", "RECLTD",
     "SAIL", "SIEMENS", "SRF", "TORNTPHARM", "TRENT",
     "TVSMOTOR", "UBL", "VEDL", "VOLTAS", "ADANIGREEN",
-    "ADANIENSOL", "BALKRISIND", "ZOMATO", "ZEEL", "WHIRLPOOL",
+    "ADANIENSOL", "BALKRISIND", "ZEEL", "WHIRLPOOL",
 ]
 
 # ── Nifty Midcap 150 ──────────────────────────────────────────────────────────
@@ -43,11 +43,11 @@ NIFTY_MIDCAP_150: List[str] = [
     "FORTIS", "GALAXYSURF", "GHCL", "GNFC", "GODREJIND",
     "GRANULES", "GSFC", "GSPL", "GUJGASLTD", "HAPPSTMNDS",
     "HATSUN", "HDFCAMC", "HFCL", "HIKAL", "HINDPETRO",
-    "HONAUT", "HUDCO", "IBREALEST", "IDFC", "IDFCFIRSTB",
+    "HONAUT", "HUDCO", "IBREALEST", "IDFCFIRSTB",
     "IEX", "IIFL", "INDHOTEL", "INDIAMART", "INDIANB",
     "IOLCP", "IPCALAB", "IRCTC", "JBCHEPHARM", "JKCEMENT",
-    "JKLAKSHMI", "JKPAPER", "JKTYRES", "JMFINANCIL", "JUBLINGREA",
-    "KAJARIACER", "KALPATPOWR", "KANSAINER", "KEC", "KPITTECH",
+    "JKLAKSHMI", "JKPAPER", "JMFINANCIL", "JUBLINGREA",
+    "KAJARIACER", "KANSAINER", "KEC", "KPITTECH",
     "KRBL", "LALPATHLAB", "LAURUSLABS", "LEMONTREE", "LICI",
     "LINDEINDIA", "LTTS", "LUXIND", "MANAPPURAM", "MASFIN",
     "MAXHEALTH", "METROPOLIS", "MGL", "MINDACORP", "MPHASIS",
@@ -56,97 +56,82 @@ NIFTY_MIDCAP_150: List[str] = [
     "PHOENIXLTD", "POLYCAB", "POONAWALLA", "QUESS", "RADICO",
     "RAILTEL", "RAIN", "RALLIS", "RATNAMANI", "RAYMOND",
     "REDINGTON", "RELAXO", "RITES", "ROUTE", "SAPPHIRE",
-    "SCHAEFFLER", "SEQUENT", "SKFINDIA", "SOBHA", "SOLARINDS",
+    "SCHAEFFLER", "SKFINDIA", "SOBHA", "SOLARINDS",
     "SPARC", "SPANDANA", "STOVEKRAFT", "SUDARSCHEM", "SUMICHEM",
     "SUNTV", "SUPRAJIT", "SUPREMEIND", "SYNGENE", "TASTYBITE",
     "TATACHEM", "TATACOMM", "TATAINVEST", "TEAMLEASE", "THERMAX",
-    "TIMKEN", "TTKPRESTIG", "TVSSRICHAK", "UJJIVAN", "UNIONBANK",
+    "TIMKEN", "TTKPRESTIG", "TVSSRICHAK", "UNIONBANK",
     "USHAMART", "VAIBHAVGBL", "VARROC", "VGUARD", "VMART",
     "VSTIND", "WOCKPHARMA", "YESBANK", "ZYDUSLIFE", "SOLARA",
     "MAITHANALL", "POLYMED", "RPGLIFE", "SANOFI", "MIDHANI",
-    "APOLLOTYRE", "APCOTEX", "CERA", "CYIENT", "DCBBANK",
-    "GLENMARK", "GRINDWELL", "JYOTHYLAB", "KPRMILL", "MINDA",
-    "MOTILALOFS", "NAVNETEDUL", "NEOGEN", "NIITLTD", "PRAJIND",
-    "PRINCEPIPE", "RBLBANK", "VIMTALABS", "INDIGOPNTS", "SUVENPHAR",
-]
+    "APOLLOTYRE", "CERA", "CYIENT", "DCBBANK",
+    "GLENMARK", "GRINDWELL", "JYOTHYLAB", "KPRMILL", "MOTILALOFS", "NAVNETEDUL", "NEOGEN", "NIITLTD", "PRAJIND",
+    "PRINCEPIPE", "RBLBANK", "VIMTALABS", "INDIGOPNTS", ]
 
 # ── Nifty Smallcap 250 ────────────────────────────────────────────────────────
 NIFTY_SMALLCAP_250: List[str] = [
-    "AARTIDRUGS", "AARTIIND", "ACCELYA", "AEGISCHEM", "AIAENG",
+    "AARTIDRUGS", "AARTIIND", "ACCELYA", "AIAENG",
     "AJMERA", "AKZOINDIA", "ALEMBICLTD", "ALICON", "ALKYLAMINE",
     "ALLCARGO", "AMBER", "ANGELONE", "APARINDS", "ARVIND",
     "ASHOKA", "AVANTIFEED", "AVTNPL", "BAJAJCON", "BALAXI",
     "BALAMINES", "BALMLAWRIE", "BEML", "CAMLINFINE", "CAPLIPOINT",
     "CARBORUNIV", "CARERATING", "CASTROLIND", "CEATLTD", "CENTURYPLY",
-    "CENTURYTEX", "CHEMCON", "CHENNPETRO", "CIGNITITEC", "CMSINFO",
-    "COCHINSHIP", "COLORCHEMS", "COSMOFILMS", "CRAFTSMAN", "DATAPATTNS",
-    "DATAMATICS", "DBCORP", "DEEPAKFERT", "DFMFOODS", "DHANLAXMI",
-    "DREDGECORP", "DYNAMATECH", "EASEMYTRIP", "ELGI", "EMKAY",
+    "CHEMCON", "CHENNPETRO", "CIGNITITEC", "CMSINFO",
+    "COCHINSHIP", "CRAFTSMAN", "DATAPATTNS",
+    "DATAMATICS", "DBCORP", "DEEPAKFERT", "DHANLAXMI",
+    "DREDGECORP", "DYNAMATECH", "EASEMYTRIP", "EMKAY",
     "EMMBI", "ENIL", "ESABINDIA", "FILATEX", "FORCEMOT",
-    "GABRIEL", "GANESHHOUC", "GARFIBRES", "GEECEE", "GENUSPAPER",
+    "GABRIEL", "GARFIBRES", "GEECEE", "GENUSPAPER",
     "GLOBUSSPR", "GODFRYPHLP", "GOLDIAM", "GOODLUCK", "GREAVESCOT",
-    "GREENPANEL", "GUFICBIO", "GULFOILLUB", "HARDCASTLE", "HBLPOWER",
-    "HERANBA", "HIMATSEIDE", "HMVL", "HOMEFIRST", "HSIL",
-    "IGARASHI", "IGPL", "IMFA", "INDORAMA",
-    "INFIBEAM", "IONEXCHANG", "IRCON", "ISGEC", "J&KBANK",
-    "JAGRAN", "JAIBALAJI", "JAL", "JASH", "JAYAGROGN",
+    "GREENPANEL", "GUFICBIO", "GULFOILLUB", "HERANBA", "HIMATSEIDE", "HMVL", "HOMEFIRST", "IGARASHI", "IGPL", "IMFA", "INDORAMA",
+    "IONEXCHANG", "IRCON", "ISGEC", "J&KBANK",
+    "JAGRAN", "JAIBALAJI", "JASH", "JAYAGROGN",
     "JOCIL", "JPPOWER", "JUSTDIAL", "KALYANKJIL", "KELLTONTEC",
-    "KIRIIND", "KIRLOSBROS", "KITEX", "KNRCON", "KOLTEPATIL",
+    "KIRLOSBROS", "KITEX", "KNRCON", "KOLTEPATIL",
     "KRSNAA", "LAOPALA", "LATENTVIEW", "LICHSGFIN", "LINC",
     "LXCHEM", "M&MFIN", "MADRASFERT", "MAHLIFE", "MAHSCOOTER",
     "MANINFRA", "MAPMYINDIA", "MARKSANS", "MASTEK", "MEDPLUS",
-    "MENONBE", "METROBRAND", "MFL", "MOIL", "MOLDTKPAC",
+    "MENONBE", "METROBRAND", "MOIL", "MOLDTKPAC",
     "MPSLTD", "MRF", "MRPL", "MUKANDLTD", "NACLIND",
-    "NAHARPOLY", "NALCO", "NBCC", "NETWEB", "NFL",
-    "NGLFINECHEM", "NIITLTD", "NLCINDIA", "NUCLEUS", "OCCL",
-    "ONMOBILE", "OPTIEMUS", "PANAMAPET", "PARAGMILK", "PASHUPATI",
-    "PAUSHAKLTD", "PCJEWELLER", "PLASTIBLENDS", "POLYPLEX",
-    "PRECOT", "PRESTIGE", "PRICOLLTD", "PRISM", "QUICKHEAL",
-    "RADCON", "RAILVIKAS", "RCF", "RELIGARE", "RENUKA",
+    "NAHARPOLY", "NBCC", "NETWEB", "NFL",
+    "NIITLTD", "NLCINDIA", "NUCLEUS", "ONMOBILE", "OPTIEMUS", "PANAMAPET", "PARAGMILK", "PASHUPATI",
+    "PAUSHAKLTD", "PCJEWELLER", "POLYPLEX",
+    "PRECOT", "PRESTIGE", "PRICOLLTD", "QUICKHEAL",
+    "RCF", "RELIGARE", "RENUKA",
     "RICOAUTO", "RKFORGE", "RUPA", "RUSHIL", "SAFARI",
-    "SAREGAMA", "SAVITA", "SHAKTIPUMP", "SHANKARA", "SHARDACROP",
+    "SAREGAMA", "SHAKTIPUMP", "SHANKARA", "SHARDACROP",
     "SHAREINDIA", "SHILPAMED", "SHIVALIK", "SHOPERSTOP", "SKIPPER",
     "SMARTLINK", "SOLEX", "SPENCERS", "SPTL", "STLTECH",
     "SUBROS", "SURYODAY", "SYMPHONY", "SYRMA", "TANLA",
-    "TBOTECH", "THYROCARE", "TITAGARH", "TIPSINDLTD", "TRITON",
-    "TVSHLTD", "UCAL", "UFLEX", "UNITDSPR", "V2RETAIL",
-    "VINAYCHEM", "WABCOINDIA", "WELSPUNIND", "WESTLIFE", "WONDERLA",
+    "THYROCARE", "TITAGARH", "TVSHLTD", "UCAL", "UFLEX", "UNITDSPR", "V2RETAIL",
+    "WESTLIFE", "WONDERLA",
     "XCHANGING", "YATHARTH", "YUKEN", "ZODIAC", "ZUARI",
-    "ASTERDM", "INOXWIND", "JNKIND", "KAJARIACER", "LASA",
-    "NIPSEYLIFE", "OISL", "PARABDRUGS", "SADHBHAV", "TRONOX",
-    "KSCL", "GRINFRA", "SAFARI", "SBCL", "SWSOLAR",
+    "ASTERDM", "INOXWIND", "KAJARIACER", "LASA",
+    "OISL", "KSCL", "GRINFRA", "SAFARI", "SBCL", "SWSOLAR",
     "RPSGVENT", "RTNINDIA", "RUBYMILLS", "RUCHINFRA", "SAGARDEEP",
     "SAHYADRI", "SANDESH", "SANGAMIND", "SARLAPOLY", "SATIA",
-    "SAURASHCEM", "SBFC", "SELAN", "SHANTIGEAR", "SHIVAM",
-    "SHOPERSTOP", "SHRIRAMPPS", "SHRIRAMCIT", "SILINV", "SKMILEVENTH",
-    "SMSPHARMA", "SOFTSOLN", "SOPHIOS", "SPAL", "SPECIALITY",
-    "SPSIND", "SREEL", "SRG", "SRIPIPES", "STAR",
-    "STARBUSHOR", "SUKHJITS", "SUMIT", "SUNFLAG", "SUPERNOVA",
-    "SWASTIKA", "SYNCOM", "SYSTEMIX", "TALWALKARS", "TATAMETALI",
-    "TECHNOE", "TECHNOELE", "TGBHOTELS", "THIRUMALAI", "THOMASCOOK",
-    "TIMETECHNO", "TJSB", "TRIGYN", "TRIPATHYI", "TUFROPES",
-    "TVSELECT", "V2RETAIL", "VARROC", "VSTIND", "VSSL",
-    "VVFLTD", "WALCHANNAG", "WEBEL", "WIPIND", "XCHANGING",
-    "XTGLOBAL", "ZENTEC", "ZODJRDMKJ", "ZUARIIND", "JKIL",
+    "SAURASHCEM", "SBFC", "SHANTIGEAR", "SHOPERSTOP", "SHRIRAMPPS", "SILINV", "SMSPHARMA", "SPAL", "SPECIALITY",
+    "SREEL", "STAR",
+    "SUKHJITS", "SUMIT", "SUNFLAG", "TALWALKARS", "TECHNOE", "TGBHOTELS", "THOMASCOOK",
+    "TIMETECHNO", "TRIGYN", "TVSELECT", "V2RETAIL", "VARROC", "VSTIND", "VSSL",
+    "WALCHANNAG", "XCHANGING",
+    "XTGLOBAL", "ZENTEC", "ZUARIIND", "JKIL",
     "NUVOCO", "ROUTE", "PRAXIS", "PRINCEPIPE", "SOLARINDS",
-    "TATAINVEST", "SUPREMEIND", "VGUARD", "VSTIND", "ROLTAS",
-    "RAJRATAN", "PUROHIT", "QUESS", "PDMJEPAPER", "PGHH",
+    "TATAINVEST", "SUPREMEIND", "VGUARD", "VSTIND", "RAJRATAN", "QUESS", "PDMJEPAPER", "PGHH",
 ]
 
 # ── Additional liquid NSE stocks ──────────────────────────────────────────────
 ADDITIONAL_LIQUID: List[str] = [
     "PERSISTENT", "TATATECH", "MANKIND", "JSWENERGY", "CANBK",
-    "PNB", "BANKBARODA", "INDIANHOTEL", "GMRINFRA", "SUZLON",
+    "PNB", "BANKBARODA", "SUZLON",
     "IDEA", "RCOM", "TATACHEM", "SAIL", "NHPC",
     "SJVN", "RVNL", "IRFC", "IRCON", "HAL",
     "BEL", "BHEL", "NTPC", "POWERGRID", "GAIL",
-    "OIL", "MGL", "IGL", "MAHANAGAR", "TORNTPOWER",
+    "OIL", "MGL", "IGL", "TORNTPOWER",
     "TATAPOWER", "JSWENERGY", "ADANIPOWER", "CESC", "NHPC",
-    "CRISIL", "MCX", "CDSL", "BSE", "MSEI",
-    "ANGELONE", "MOTILALOFS", "IIFL", "5PAISA", "GEOJITFSL",
+    "CRISIL", "MCX", "CDSL", "BSE", "ANGELONE", "MOTILALOFS", "IIFL", "5PAISA", "GEOJITFSL",
     "DMART", "NYKAA", "PAYTM", "POLICYBZR", "CARTRADE",
-    "EASEMYTRIP", "IXIGO", "INDIAMART", "JUSTDIAL", "MAKEMYTRIP",
-    "MAPMYINDIA", "TANLA", "NAZARA", "RATEGAIN", "HAPPSTMNDS",
+    "EASEMYTRIP", "IXIGO", "INDIAMART", "JUSTDIAL", "MAPMYINDIA", "TANLA", "NAZARA", "RATEGAIN", "HAPPSTMNDS",
 ]
 
 # ── Company metadata: ticker → (name, sector) ─────────────────────────────────
@@ -194,7 +179,6 @@ COMPANY_INFO: Dict[str, Tuple[str, str]] = {
     "SHREECEM": ("Shree Cement", "Cement"),
     "SUNPHARMA": ("Sun Pharmaceutical", "Pharma"),
     "TATACONSUM": ("Tata Consumer Products", "FMCG"),
-    "TATAMOTORS": ("Tata Motors", "Auto"),
     "TATASTEEL": ("Tata Steel", "Metals"),
     "TCS": ("Tata Consultancy Services", "IT"),
     "TECHM": ("Tech Mahindra", "IT"),
@@ -228,7 +212,6 @@ COMPANY_INFO: Dict[str, Tuple[str, str]] = {
     "JUBLFOOD": ("Jubilant Foodworks", "Consumer"),
     "LUPIN": ("Lupin", "Pharma"),
     "MARICO": ("Marico", "FMCG"),
-    "MCDOWELL-N": ("United Spirits", "FMCG"),
     "MFSL": ("Max Financial Services", "Insurance"),
     "MUTHOOTFIN": ("Muthoot Finance", "NBFC"),
     "NAUKRI": ("Info Edge India", "IT"),
@@ -250,7 +233,6 @@ COMPANY_INFO: Dict[str, Tuple[str, str]] = {
     "ADANIGREEN": ("Adani Green Energy", "Power"),
     "ADANIENSOL": ("Adani Energy Solutions", "Power"),
     "BALKRISIND": ("Balkrishna Industries", "Auto Ancillary"),
-    "ZOMATO": ("Zomato", "Consumer"),
     "ZEEL": ("Zee Entertainment", "Media"),
     "WHIRLPOOL": ("Whirlpool of India", "Consumer"),
     # Midcap
@@ -312,7 +294,6 @@ COMPANY_INFO: Dict[str, Tuple[str, str]] = {
     "HONAUT": ("Honeywell Automation India", "Capital Goods"),
     "HUDCO": ("Housing and Urban Development Corporation", "NBFC"),
     "IBREALEST": ("Indiabulls Real Estate", "Real Estate"),
-    "IDFC": ("IDFC", "Financial Services"),
     "IDFCFIRSTB": ("IDFC First Bank", "Banking"),
     "IEX": ("Indian Energy Exchange", "Financial Services"),
     "IIFL": ("IIFL Finance", "NBFC"),
@@ -326,11 +307,9 @@ COMPANY_INFO: Dict[str, Tuple[str, str]] = {
     "JKCEMENT": ("JK Cement", "Cement"),
     "JKLAKSHMI": ("JK Lakshmi Cement", "Cement"),
     "JKPAPER": ("JK Paper", "Paper"),
-    "JKTYRES": ("JK Tyre & Industries", "Auto Ancillary"),
     "JMFINANCIL": ("JM Financial", "Financial Services"),
     "JUBLINGREA": ("Jubilant Ingrevia", "Chemicals"),
     "KAJARIACER": ("Kajaria Ceramics", "Building Materials"),
-    "KALPATPOWR": ("Kalpataru Power Transmission", "Infrastructure"),
     "KANSAINER": ("Kansai Nerolac Paints", "Consumer"),
     "KEC": ("KEC International", "Infrastructure"),
     "KPITTECH": ("KPIT Technologies", "IT"),
@@ -375,7 +354,6 @@ COMPANY_INFO: Dict[str, Tuple[str, str]] = {
     "ROUTE": ("Route Mobile", "IT"),
     "SAPPHIRE": ("Sapphire Foods India", "Consumer"),
     "SCHAEFFLER": ("Schaeffler India", "Auto Ancillary"),
-    "SEQUENT": ("Sequent Scientific", "Pharma"),
     "SKFINDIA": ("SKF India", "Capital Goods"),
     "SOBHA": ("Sobha", "Real Estate"),
     "SOLARINDS": ("Solar Industries India", "Chemicals"),
@@ -397,7 +375,6 @@ COMPANY_INFO: Dict[str, Tuple[str, str]] = {
     "TIMKEN": ("Timken India", "Capital Goods"),
     "TTKPRESTIG": ("TTK Prestige", "Consumer"),
     "TVSSRICHAK": ("TVS Srichakra", "Auto Ancillary"),
-    "UJJIVAN": ("Ujjivan Financial Services", "NBFC"),
     "UNIONBANK": ("Union Bank of India", "Banking"),
     "USHAMART": ("Usha Martin", "Metals"),
     "VAIBHAVGBL": ("Vaibhav Global", "Retail"),
@@ -415,7 +392,6 @@ COMPANY_INFO: Dict[str, Tuple[str, str]] = {
     "SANOFI": ("Sanofi India", "Pharma"),
     "MIDHANI": ("Mishra Dhatu Nigam", "Defence"),
     "APOLLOTYRE": ("Apollo Tyres", "Auto Ancillary"),
-    "APCOTEX": ("Apcotex Industries", "Chemicals"),
     "CERA": ("Cera Sanitaryware", "Building Materials"),
     "CYIENT": ("Cyient", "IT"),
     "DCBBANK": ("DCB Bank", "Banking"),
@@ -423,7 +399,6 @@ COMPANY_INFO: Dict[str, Tuple[str, str]] = {
     "GRINDWELL": ("Grindwell Norton", "Capital Goods"),
     "JYOTHYLAB": ("Jyothy Labs", "FMCG"),
     "KPRMILL": ("K.P.R. Mill", "Textile"),
-    "MINDA": ("Minda Industries", "Auto Ancillary"),
     "MOTILALOFS": ("Motilal Oswal Financial Services", "Financial Services"),
     "NAVNETEDUL": ("Navneet Education", "Education"),
     "NEOGEN": ("Neogen Chemicals", "Chemicals"),
@@ -433,12 +408,10 @@ COMPANY_INFO: Dict[str, Tuple[str, str]] = {
     "RBLBANK": ("RBL Bank", "Banking"),
     "VIMTALABS": ("Vimta Labs", "Healthcare"),
     "INDIGOPNTS": ("Indigo Paints", "Consumer"),
-    "SUVENPHAR": ("Suven Pharmaceuticals", "Pharma"),
     # Default for unmapped
 }
 
 SECTOR_LIST = sorted(set(v[1] for v in COMPANY_INFO.values()))
-
 
 def get_universe(category: str = "full") -> List[str]:
     """Return list of tickers (without .NS) for the selected universe."""
@@ -452,7 +425,6 @@ def get_universe(category: str = "full") -> List[str]:
     raw = universe_map.get(category, NIFTY_50 + NIFTY_NEXT_50 + NIFTY_MIDCAP_150 + NIFTY_SMALLCAP_250 + ADDITIONAL_LIQUID)
     return list(dict.fromkeys(raw))  # deduplicate preserving order
 
-
 def get_tickers_ns(category: str = "full") -> List[str]:
     """Return tickers with .NS suffix for yfinance.
 
@@ -461,16 +433,13 @@ def get_tickers_ns(category: str = "full") -> List[str]:
     tickers = get_universe(category)
     return [f"{t}.NS" for t in tickers]
 
-
 def get_company_name(ticker: str) -> str:
     base = ticker.replace(".NS", "")
     return COMPANY_INFO.get(base, (base, "Unknown"))[0]
 
-
 def get_sector(ticker: str) -> str:
     base = ticker.replace(".NS", "")
     return COMPANY_INFO.get(base, ("Unknown", "Unknown"))[1]
-
 
 def get_market_cap_category(market_cap: float) -> str:
     """Classify by market cap (INR crores)."""
