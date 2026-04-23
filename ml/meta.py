@@ -133,15 +133,38 @@ def build_primary_filtered_panel(
         raise RuntimeError("Primary signal fired on zero rows — "
                            "check thresholds or universe coverage.")
 
-    X = pd.concat(X_parts).sort_index()
-    y = pd.concat(y_parts).reindex(X.index)
-    t1 = pd.concat(t1_parts).reindex(X.index)
-    tkr = pd.concat(tkr_parts).reindex(X.index)
+    # Concatenate per-ticker blocks in parallel (rows stay aligned).
+    # DO NOT reindex — dates repeat across tickers, which would be ambiguous.
+    X = pd.concat(X_parts)
+    y = pd.concat(y_parts)
+    t1 = pd.concat(t1_parts)
+    tkr = pd.concat(tkr_parts)
+
+    # Capture bar dates (t0) BEFORE resetting to RangeIndex — PurgedKFold needs
+    # explicit t0 timestamps because X.index will become integer positions.
+    t0 = pd.Series(pd.to_datetime(X.index.values))
+
+    # Unique row ids so downstream .loc[]/.reindex() on this frame never collides.
+    new_idx = pd.RangeIndex(len(X))
+    X.index = new_idx
+    y.index = new_idx
+    t1.index = new_idx
+    tkr.index = new_idx
+    t0.index = new_idx
+
+    # Sort by label time (t1) globally — downstream PurgedKFold depends on
+    # a monotonic t1 for clean train/test splits.
+    order = t1.sort_values().index
+    X = X.loc[order].reset_index(drop=True)
+    y = y.loc[order].reset_index(drop=True)
+    t1 = t1.loc[order].reset_index(drop=True)
+    tkr = tkr.loc[order].reset_index(drop=True)
+    t0 = t0.loc[order].reset_index(drop=True)
 
     firing_counts = count_firings(X[[c for c in PATTERN_FEATURE_COLS if c.endswith("_fires") and c in X.columns]]) \
         if include_patterns else {}
 
-    return X, y, t1, tkr, firing_counts
+    return X, y, t1, t0, tkr, firing_counts
 
 
 def gate_experimental_patterns(
