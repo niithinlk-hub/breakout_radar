@@ -1,7 +1,7 @@
 """CLI: train full meta-labeling bundle offline (Phase 3+4+5).
 
 Pipeline:
-  1. Resolve tickers → bulk OHLCV + benchmark (+VIX).
+  1. Resolve tickers -> bulk OHLCV + benchmark (+VIX).
   2. Fit 3-state HMM on benchmark (regime bundle).
   3. Build primary-filtered panel with regime + pattern features.
   4. Gate experimental patterns (<100 firings).
@@ -46,16 +46,22 @@ from ml.report import generate_report                              # noqa: E402
 
 
 def _resolve_tickers(arg: str) -> List[str]:
-    if arg == "NIFTY50":
+    if arg in ("NIFTY50", "nifty50"):
         try:
-            from tickers import NIFTY_50_TICKERS_NS
-            return list(NIFTY_50_TICKERS_NS)
+            from tickers import get_tickers_ns
+            return list(get_tickers_ns("nifty50"))
+        except Exception:
+            pass
+    if arg in ("next50", "midcap150", "smallcap250"):
+        try:
+            from tickers import get_tickers_ns
+            return list(get_tickers_ns(arg))
         except Exception:
             pass
     if arg == "all":
         try:
             from tickers import get_tickers_ns
-            return list(get_tickers_ns())
+            return list(get_tickers_ns("full"))
         except Exception:
             pass
     p = Path(arg)
@@ -141,11 +147,11 @@ def main() -> None:
     ap.add_argument("--out", default=str(META_PATH_DEFAULT))
     args = ap.parse_args()
 
-    t0 = time.time()
+    t_start = time.time()
     tickers = _resolve_tickers(args.tickers)
     print(f"[1/9] Resolved {len(tickers)} tickers")
 
-    print(f"[2/9] Bulk-downloading OHLCV (period={args.period}) …")
+    print(f"[2/9] Bulk-downloading OHLCV (period={args.period}) ...")
     stocks = data_loader.fetch_universe(
         tickers, period=args.period, use_cache=not args.fresh
     )
@@ -163,7 +169,7 @@ def main() -> None:
     else:
         regime_df = regime_series(regime_bundle, bench)
         print(f"      HMM fit on {regime_bundle.n_obs} obs "
-              f"({regime_bundle.last_fit_range[0]} → {regime_bundle.last_fit_range[1]})")
+              f"({regime_bundle.last_fit_range[0]} -> {regime_bundle.last_fit_range[1]})")
         try:
             regime_bundle.save()
         except Exception as e:
@@ -173,7 +179,7 @@ def main() -> None:
           f"(triple-barrier upper={args.upper:+.2%} lower={args.lower:+.2%} "
           f"horizon={args.horizon}d)")
     primary_cfg = PrimaryConfig()
-    X, y, t1, tkr, firing_counts = build_primary_filtered_panel(
+    X, y, t1, t0, tkr, firing_counts = build_primary_filtered_panel(
         stocks, bench,
         upper=args.upper, lower=args.lower, horizon=args.horizon,
         regime_df=regime_df,
@@ -190,7 +196,7 @@ def main() -> None:
     if experimental:
         print(f"      experimental patterns excluded from meta features "
               f"({len(experimental)}): {', '.join(experimental[:6])}"
-              f"{' …' if len(experimental) > 6 else ''}")
+              f"{' ...' if len(experimental) > 6 else ''}")
 
     feature_names = list(X.columns)
     print(f"      final feature count: {len(feature_names)}")
@@ -207,7 +213,7 @@ def main() -> None:
     if args.trials > 0:
         for name in ("xgb", "lgbm", "cat"):
             try:
-                p = tune_learner(name, X, y, t1,
+                p = tune_learner(name, X, y, t1, t0=t0,
                                  n_trials=args.trials,
                                  n_splits=args.cv_splits,
                                  embargo_pct=args.embargo_pct)
@@ -224,7 +230,7 @@ def main() -> None:
 
     print("[7/9] Training calibrated ensemble (XGB + LGBM + CatBoost)")
     ens = train_ensemble(
-        X=X, y=y, t1=t1,
+        X=X, y=y, t1=t1, t0=t0,
         best_params=best_params,
         tail_frac=args.tail_frac,
         cv_splits=args.cv_splits,
@@ -291,7 +297,7 @@ def main() -> None:
     )
     out_path = Path(args.out)
     bundle.save(out_path)
-    print(f"      saved → {out_path}")
+    print(f"      saved -> {out_path}")
 
     print("[9/9] Generating validation_report.md")
     shap_imp = _global_shap_importance(ens.ensemble, X.tail(500), feature_names)
@@ -304,11 +310,11 @@ def main() -> None:
             shap_importance=shap_imp if not shap_imp.empty else None,
             feature_importance=feat_imp,
         )
-        print(f"      report → {report_path}")
+        print(f"      report -> {report_path}")
     except Exception as e:
         print(f"      (report generation failed: {e})")
 
-    elapsed = time.time() - t0
+    elapsed = time.time() - t_start
     print("-" * 60)
     print(f"DONE in {elapsed:.1f}s")
     print(f"tail metrics: AUC={metrics.get('auc', float('nan')):.4f}  "
