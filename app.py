@@ -936,8 +936,9 @@ def main() -> None:
     filtered_df = apply_filters(full_df, settings)
 
     # ── Tabs ──
-    tab_ml, tab0, tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab_ml, tab_pat, tab0, tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "🤖 ML Screener",
+        "🔍 Pattern Scanner",
         "🎯 BUY Setups",
         "📡 Breakout Radar",
         "🔬 Analysis",
@@ -955,6 +956,15 @@ def main() -> None:
                 f"ML dependency missing: `{e.name}`. "
                 "Install via `pip install -r requirements.txt` and redeploy."
             )
+        except Exception as e:
+            st.exception(e)
+
+    with tab_pat:
+        try:
+            from ml.pattern_tab import render_pattern_scanner
+            render_pattern_scanner()
+        except ModuleNotFoundError as e:
+            st.error(f"Dependency missing: `{e.name}`.")
         except Exception as e:
             st.exception(e)
 
