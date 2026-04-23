@@ -7,8 +7,15 @@ ta>=0.11.0
 scipy>=1.11.0
 requests>=2.31.0
 
-# ML stack (Phase 1 baseline)
+# ML stack
 xgboost>=2.0.0
 scikit-learn>=1.3.0
 joblib>=1.3.0
 pyarrow>=14.0.0
+
+# Phase 3+4+5: ensemble, tuning, regime, explainability
+lightgbm>=4.1.0
+catboost>=1.2.2
+optuna>=3.4.0
+hmmlearn>=0.3.0
+shap>=0.44.0
