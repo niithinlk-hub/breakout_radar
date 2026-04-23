@@ -229,7 +229,7 @@ def build_score_breakdown(factor_scores: Dict[str, float]) -> go.Figure:
         textfont=dict(color=COLORS["muted"], size=10),
     ))
     fig.update_layout(**plotly_layout(
-        xaxis=dict(range=[0, 12], title="Score (0-10)"),
+        xaxis=dict(range=[0, 12], title=dict(text="Score (0-10)")),
         height=300,
         margin=dict(l=200, r=80, t=20, b=20),
     ))
@@ -284,7 +284,7 @@ def build_treemap(metrics_df: pd.DataFrame) -> go.Figure:
             cmax=100,
             showscale=True,
             colorbar=dict(
-                title="BPS",
+                title=dict(text="BPS"),
                 tickvals=[0, 50, 70, 100],
                 tickfont=dict(color=COLORS["muted"]),
             ),
@@ -331,7 +331,7 @@ def build_sector_heatmap(metrics_df: pd.DataFrame) -> go.Figure:
         textfont=dict(color=COLORS["muted"], size=11),
     ))
     fig.update_layout(**plotly_layout(
-        xaxis=dict(range=[0, 105], title="Average BPS"),
+        xaxis=dict(range=[0, 105], title=dict(text="Average BPS")),
         height=max(400, len(sector_avg) * 28),
         margin=dict(l=180, r=60, t=20, b=30),
     ))
