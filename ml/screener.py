@@ -60,6 +60,7 @@ def score_universe(
     primary_cfg: Optional[PrimaryConfig] = None,
     include_shap: bool = True,
     shap_top_n: int = 10,
+    override_regime_gate: bool = False,
 ) -> pd.DataFrame:
     """One row per ticker that passes primary. Sorted by composite score desc.
 
@@ -67,14 +68,14 @@ def score_universe(
     pattern_list, regime_state, entry/stop/targets, kelly_frac, shap_drivers.
 
     Risk-off gate: if regime.p_riskoff > 0.6, return an empty frame
-    (caller shows a red banner).
+    (caller shows a red banner). Pass override_regime_gate=True to bypass.
     """
     if meta_bundle is None or meta_bundle.ensemble is None or not stocks:
         return pd.DataFrame()
 
-    # Global regime gate (latest day)
+    # Global regime gate (latest day) — bypassable via override_regime_gate.
     reg_latest = current_regime(regime_df if regime_df is not None else pd.DataFrame())
-    if reg_latest.get("block_new_picks"):
+    if reg_latest.get("block_new_picks") and not override_regime_gate:
         return pd.DataFrame()
 
     upper = meta_bundle.label_params.get("upper_pct", 0.05)
