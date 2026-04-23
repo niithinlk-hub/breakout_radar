@@ -206,6 +206,7 @@ def walk_forward(
                 X=train[feat_cols],
                 y=train["label"].astype(int),
                 t1=train["t1"],
+                t0=train["date"],
                 best_params=bp,
                 tail_frac=0.15,
                 cv_splits=cv_splits,
