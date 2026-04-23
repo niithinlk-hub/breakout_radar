@@ -33,13 +33,14 @@ def _brier_cv_score(
     build_estimator: Callable,
     params: Dict,
     X: pd.DataFrame, y: pd.Series, t1: pd.Series,
+    t0: Optional[pd.Series] = None,
     n_splits: int = 4, embargo_pct: float = 0.01,
 ) -> float:
     """Mean Brier across purged CV folds (lower is better)."""
     from sklearn.metrics import brier_score_loss
     cv = PurgedKFold(n_splits=n_splits, embargo_pct=embargo_pct)
     scores: List[float] = []
-    for tr, te in cv.split(X, y, t1=t1):
+    for tr, te in cv.split(X, y, t1=t1, t0=t0):
         if len(tr) < 100 or len(te) < 50:
             continue
         est = build_estimator(params)
@@ -127,6 +128,7 @@ def _build_cat(params: Dict):
 def tune_learner(
     name: str,
     X: pd.DataFrame, y: pd.Series, t1: pd.Series,
+    t0: Optional[pd.Series] = None,
     n_trials: int = 100,
     n_splits: int = 4,
     embargo_pct: float = 0.01,
@@ -158,7 +160,7 @@ def tune_learner(
     def objective(trial):
         params = space_fn(trial)
         return _brier_cv_score(
-            lambda p: builder(p), params, X, y, t1,
+            lambda p: builder(p), params, X, y, t1, t0=t0,
             n_splits=n_splits, embargo_pct=embargo_pct,
         )
 
