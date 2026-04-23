@@ -144,6 +144,7 @@ def _metrics(y_true, proba) -> Dict:
 def train_ensemble(
     X: pd.DataFrame, y: pd.Series, t1: pd.Series,
     best_params: Dict[str, Optional[Dict]],
+    t0: Optional[pd.Series] = None,
     tail_frac: float = 0.2,
     cv_splits: int = 4,
     embargo_pct: float = 0.01,
@@ -172,11 +173,12 @@ def train_ensemble(
 
     cv = PurgedKFold(n_splits=cv_splits, embargo_pct=embargo_pct)
     t1_tr = t1.iloc[:k]
+    t0_tr = t0.iloc[:k] if t0 is not None else None
 
     for j, (name, est) in enumerate(built.items()):
         # OOF probs
         oof = np.full(len(X_tr), 0.5)
-        for tr_idx, te_idx in cv.split(X_tr, y_tr, t1=t1_tr):
+        for tr_idx, te_idx in cv.split(X_tr, y_tr, t1=t1_tr, t0=t0_tr):
             if len(tr_idx) < 100 or len(te_idx) < 20:
                 continue
             e = clone(est)
@@ -250,7 +252,7 @@ def train_ensemble(
 
         purged_cv = PurgedKFold(n_splits=cv_splits, embargo_pct=embargo_pct)
         purged_scores = []
-        for tr, te in purged_cv.split(X, y, t1=t1):
+        for tr, te in purged_cv.split(X, y, t1=t1, t0=t0):
             if len(tr) < 100 or len(te) < 20:
                 continue
             e = clone(base)
