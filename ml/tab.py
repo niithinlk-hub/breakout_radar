@@ -111,18 +111,30 @@ def _today_picks(meta_bundle: MetaBundle, stocks: Dict[str, pd.DataFrame],
     st.subheader("Today's Picks")
 
     snap = current_regime(regime_df)
+    override = False
     if snap["block_new_picks"]:
         st.error(
             f"🔒 Risk-off regime active (P={snap['p_riskoff']:.2f} > 0.60). "
-            "All new picks blocked by honest risk gate."
+            "Honest risk gate blocks new picks by default."
         )
-        return
+        override = st.checkbox(
+            "Override risk-off gate (show picks anyway — use at your own risk)",
+            value=False,
+        )
+        if not override:
+            return
+        st.warning(
+            "⚠ Gate overridden. Picks shown are probabilities under the model's "
+            "training distribution, not conditioned on the current risk-off regime. "
+            "Size smaller than usual."
+        )
 
     with st.spinner("Scoring universe…"):
         scored = screener.score_universe(
             meta_bundle, stocks, bench,
             regime_df=regime_df, primary_cfg=primary_cfg,
             include_shap=True, shap_top_n=10,
+            override_regime_gate=override,
         )
     if scored.empty:
         st.info("No tickers passed the primary filter on the latest bar.")
