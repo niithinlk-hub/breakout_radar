@@ -1,8 +1,10 @@
 __pycache__/
-*.py[cod]
+*.pyc
+*.pyo
 .DS_Store
-.streamlit/secrets.toml
 .venv/
 venv/
-env/
 .env
+
+# Local-only caches (Parquet)
+cache/
